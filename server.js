@@ -9,7 +9,7 @@ import fs from "fs";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import PDFDocument from "pdfkit";
+
 
 
 dotenv.config();
