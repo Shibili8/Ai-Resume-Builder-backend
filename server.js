@@ -195,30 +195,114 @@ app.get("/portfolio", authMiddleware, async (req, res) => {
 // ======================
 app.post("/pdf/export", (req, res) => {
   try {
-    const { name, email, summary, skills } = req.body;
+    const {
+      name,
+      email,
+      summary,
+      skills,
+      education = [],
+      experience = [],
+      projects = [],
+      certificates = []
+    } = req.body;
 
-    const doc = new PDFDocument();
+    const doc = new PDFDocument({ margin: 40 });
     const filePath = join(__dirname, `resume_${Date.now()}.pdf`);
     const stream = fs.createWriteStream(filePath);
     doc.pipe(stream);
 
-    doc.fontSize(20).text("Resume", { align: "center" });
+    // Title
+    doc.fontSize(22).text("Resume", { align: "center" });
+    doc.moveDown(1.5);
+
+    // Basic Info
+    if (name) doc.fontSize(16).text(`Name: ${name}`);
+    if (email) doc.fontSize(12).text(`Email: ${email}`);
     doc.moveDown();
 
-    if (name) doc.fontSize(14).text(`Name: ${name}`);
-    if (email) doc.text(`Email: ${email}`);
-    doc.moveDown();
-
+    // Summary
     if (summary) {
-      doc.fontSize(14).text("Summary:");
-      doc.fontSize(12).text(summary);
+      doc.fontSize(16).text("Summary:");
+      doc.fontSize(12).text(summary, { lineGap: 2 });
       doc.moveDown();
     }
 
+    // Skills
     if (skills?.length) {
-      doc.fontSize(14).text("Skills:");
-      doc.fontSize(12).text(skills.join(", "));
+      doc.fontSize(16).text("Skills:");
+      doc.fontSize(12).text(skills.join(", "), { lineGap: 2 });
       doc.moveDown();
+    }
+
+    // Education Section
+    if (education.length > 0) {
+      doc.fontSize(18).text("Education", { underline: true });
+      doc.moveDown(0.5);
+
+      education.forEach((edu) => {
+        doc.fontSize(14).text(`${edu.institute} (${edu.city})`, { continued: true })
+        doc.fontSize(12).text(` — ${edu.year}`);
+        doc.text(`Course: ${edu.course || "N/A"}`);
+        doc.text(`Grade: ${edu.grade || "N/A"}`);
+        doc.moveDown();
+      });
+    }
+
+    // Experience Section
+    if (experience.length > 0) {
+      doc.fontSize(18).text("Experience", { underline: true });
+      doc.moveDown(0.5);
+
+      experience.forEach((exp) => {
+        doc.fontSize(14).text(`${exp.role} `, { continued: true });
+        doc.fontSize(12).text(`(${exp.duration})`);
+        doc.text(`Company: ${exp.company}`);
+        doc.text(`Description: ${exp.activities}`);
+        doc.moveDown();
+      });
+    }
+
+    // Projects Section
+    if (projects.length > 0) {
+      doc.fontSize(18).text("Projects", { underline: true });
+      doc.moveDown(0.5);
+
+      projects.forEach((proj) => {
+        // Title & Link row
+        doc.fontSize(14).text(`${proj.name}`, { continued: true });
+        if (proj.link) doc.fontSize(12).text(` — ${proj.link}`);
+
+        // Description
+        if (proj.description) doc.fontSize(12).text(`Description: ${proj.description}`);
+
+        // Key Points (Bullets)
+        if (proj.keyPoints?.length > 0) {
+          doc.fontSize(12).text("Key Points:");
+          proj.keyPoints.forEach((kp) => {
+            doc.text(`• ${kp}`, { indent: 20, lineGap: 2 });
+          });
+        }
+
+        // Technologies
+        if (proj.technologies)
+          doc.fontSize(12).text(`Tech Used: ${proj.technologies}`);
+
+        doc.moveDown();
+      });
+    }
+
+    // Certificates
+    if (certificates.length > 0) {
+      doc.fontSize(18).text("Certificates", { underline: true });
+      doc.moveDown(0.5);
+
+      certificates.forEach((cert) => {
+        doc.fontSize(14).text(cert.title);
+        doc.fontSize(12).text(`Issued By: ${cert.issuedBy}`);
+        doc.text(`Issued On: ${cert.issuedOn}`);
+        if (cert.credential) doc.text(`Credential ID: ${cert.credential}`);
+        doc.moveDown();
+      });
     }
 
     doc.end();
@@ -231,6 +315,7 @@ app.post("/pdf/export", (req, res) => {
     res.status(500).json({ error: "PDF export failed" });
   }
 });
+
 
 // ======================
 // 🔹 Default Route
