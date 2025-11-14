@@ -4,7 +4,7 @@ import cors from "cors";
 import { MongoClient } from "mongodb";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
-import PDFDocument from "pdfkit";
+import puppeteer from "puppeteer";
 import fs from "fs";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
@@ -195,99 +195,114 @@ app.get("/portfolio", authMiddleware, async (req, res) => {
 // ======================
 // 🔹 PDF Resume Export
 // ======================
-app.post("/pdf/export", (req, res) => {
+app.post("/pdf/export", async (req, res) => {
   try {
-    const {
-      name,
-      email,
-      summary,
-      skills,
-      education = [],
-      experience = [],
-      projects = [],
-      certificates = []
-    } = req.body;
+    const { form, gensummary } = req.body;
 
-    const doc = new PDFDocument({ margin: 40 });
-    const filePath = join(__dirname, `resume_${Date.now()}.pdf`);
-    const stream = fs.createWriteStream(filePath);
-    doc.pipe(stream);
+    if (!form) return res.status(400).json({ error: "Form data is required" });
 
-    // TITLE
-    doc.fontSize(22).text(name || "Resume", { align: "center" });
-    doc.moveDown();
+    // Build HTML exactly like PreviewPage
+    const html = `
+      <html>
+      <head>
+        <style>
+          body { font-family: Arial; padding: 40px; background: white; }
+          h1,h2,h3 { margin: 0; }
+          .center { text-align: center; }
+          .section-title { margin-top: 20px; font-size: 18px; }
+          .flex { display: flex; justify-content: space-between; }
+          .skills { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+          .skill-pill { border: 1px solid #000; border-radius: 6px; padding: 6px 12px; font-size: 14px; }
+        </style>
+      </head>
+      <body>
+        <div class="center">
+          <h1>${form.name}</h1>
+          <h3>${form.role}</h3>
+          <p>${form.emailId} | ${form.phoneNo} | ${form.linkedIn || ''} | ${form.portfolioLink || ''}</p>
+        </div>
 
-    // EMAIL
-    if (email) doc.fontSize(12).text(`Email: ${email}`);
-    doc.moveDown();
+        <h2 class="section-title">Summary</h2><hr/>
+        <p>${gensummary.replace(/\*/g, "")}</p>
 
-    // SUMMARY
-    if (summary) {
-      doc.fontSize(16).text("Summary");
-      doc.fontSize(12).text(summary);
-      doc.moveDown();
-    }
+        <h2 class="section-title">Education</h2><hr/>
+        ${form.education?.map(e => `
+          <div style="margin-bottom:12px;">
+            <div class="flex" style="font-weight:600;">
+              <span>${e.institute}</span>
+              <span>${e.startYear} - ${e.endYear}</span>
+            </div>
+            <div style="display:flex; gap:10px; margin-top:4px;">
+              <span>${e.eduType}</span>
+              <span>${e.department}</span>
+              <span>${e.score}</span>
+            </div>
+          </div>
+        `).join('')}
 
-    // SKILLS
-    if (skills?.length) {
-      doc.fontSize(16).text("Skills");
-      doc.fontSize(12).text(skills.join(", "));
-      doc.moveDown();
-    }
+        ${form.skills?.length ? `
+          <h2 class="section-title">Skills</h2><hr/>
+          <div class="skills">
+            ${form.skills.map(s => `<span class="skill-pill">${s}</span>`).join('')}
+          </div>
+        ` : ''}
 
-    // EDUCATION
-    doc.fontSize(16).text("Education");
-    doc.moveDown(0.5);
+        <h2 class="section-title">Experience</h2><hr/>
+        ${form.experience?.map(exp => `
+          <div style="margin-bottom:12px;">
+            <div class="flex" style="font-weight:600;">
+              <span>${exp.role}</span>
+              <span>${exp.duration}</span>
+            </div>
+            <div style="margin-top:4px;">${exp.company}</div>
+            ${exp.activities ? `<p>${exp.activities}</p>` : ''}
+          </div>
+        `).join('')}
 
-    education.forEach((e) => {
-      doc.fontSize(14).text(e.institute);
-      doc.fontSize(12).text(
-        `${e.startYear}-${e.endYear} | ${e.type} in ${e.department} | ${e.grade}`
-      );
-      doc.moveDown();
+        <h2 class="section-title">Projects</h2><hr/>
+        ${form.projects?.map(p => `
+          <div style="margin-bottom:14px;">
+            <div class="flex" style="font-weight:600;">
+              <span>${p.name}</span>
+              ${p.link ? `<a href="${p.link}">${p.link}</a>` : ''}
+            </div>
+            <p>${p.description}</p>
+            ${p.keyPoints?.length ? `<ul>${p.keyPoints.filter(Boolean).map(kp => `<li>${kp}</li>`).join('')}</ul>` : ''}
+            <p><strong>Tech Used:</strong> ${p.technologies || ''}</p>
+          </div>
+        `).join('')}
+
+        <h2 class="section-title">Certificates</h2><hr/>
+        ${form.certificates?.map(c => `
+          <div style="margin-bottom:10px;">
+            <strong>${c.title}</strong>
+            <p>${c.issuedBy}</p>
+            ${c.credential ? `<p>${c.credential}</p>` : ''}
+          </div>
+        `).join('')}
+      </body>
+      </html>
+    `;
+
+    const browser = await puppeteer.launch({ args: ['--no-sandbox'] });
+    const page = await browser.newPage();
+    await page.setContent(html, { waitUntil: "networkidle0" });
+    const pdfBuffer = await page.pdf({ format: "A4", printBackground: true });
+
+    await browser.close();
+
+    res.set({
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `attachment; filename=${form.name || "resume"}.pdf`,
+      "Content-Length": pdfBuffer.length
     });
+    res.send(pdfBuffer);
 
-    // EXPERIENCE
-    doc.fontSize(16).text("Experience");
-    doc.moveDown(0.5);
-
-    experience.forEach((exp) => {
-      doc.fontSize(14).text(exp.role);
-      doc.fontSize(12).text(exp.company);
-      doc.text(exp.activities);
-      doc.moveDown();
-    });
-
-    // PROJECTS
-    doc.fontSize(16).text("Projects");
-    doc.moveDown(0.5);
-
-    projects.forEach((p) => {
-      doc.fontSize(14).text(p.name);
-      doc.fontSize(12).text(p.description);
-      doc.moveDown();
-    });
-
-    // CERTIFICATES
-    doc.fontSize(16).text("Certificates");
-    doc.moveDown(0.5);
-
-    certificates.forEach((c) => {
-      doc.fontSize(14).text(c.title);
-      doc.fontSize(12).text(c.issuedBy);
-      doc.moveDown();
-    });
-
-    doc.end();
-
-    stream.on("finish", () => {
-      res.download(filePath, () => fs.unlinkSync(filePath));
-    });
   } catch (err) {
-    res.status(500).json({ error: "PDF export failed" });
+    console.error("❌ PDF export failed:", err.message);
+    res.status(500).json({ error: "PDF export failed", details: err.message });
   }
 });
-
 
 // ======================
 // 🔹 Default Route
