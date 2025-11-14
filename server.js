@@ -197,9 +197,12 @@ app.post("/pdf/export", (req, res) => {
   try {
     const {
       name,
+      role,
       email,
+      phone,
+      address,
       summary,
-      skills,
+      skills = [],
       education = [],
       experience = [],
       projects = [],
@@ -211,100 +214,147 @@ app.post("/pdf/export", (req, res) => {
     const stream = fs.createWriteStream(filePath);
     doc.pipe(stream);
 
-    // Title
-    doc.fontSize(22).text("Resume", { align: "center" });
-    doc.moveDown(1.5);
+    /* -----------------------------------
+     *  HEADER — Centered Name + Role
+     * ----------------------------------- */
+    doc.fontSize(24).text(name || "Name", { align: "center" });
+    doc.fontSize(16).text(role || "", { align: "center" });
+    doc.moveDown(1);
 
-    // Basic Info
-    if (name) doc.fontSize(16).text(`Name: ${name}`);
-    if (email) doc.fontSize(12).text(`Email: ${email}`);
-    doc.moveDown();
+    /* -----------------------------------
+     *  CONTACT
+     * ----------------------------------- */
+    if (email || phone || address) {
+      doc.fontSize(12).text(`Email: ${email || ""}`);
+      doc.text(`Phone: ${phone || ""}`);
+      doc.text(`Address: ${address || ""}`);
+      doc.moveDown();
+    }
 
-    // Summary
+    /* -----------------------------------
+     * SUMMARY
+     * ----------------------------------- */
     if (summary) {
-      doc.fontSize(16).text("Summary:");
+      doc.fontSize(16).text("Summary", { underline: true });
       doc.fontSize(12).text(summary, { lineGap: 2 });
       doc.moveDown();
     }
 
-    // Skills
-    if (skills?.length) {
-      doc.fontSize(16).text("Skills:");
+    /* -----------------------------------
+     * SKILLS
+     * ----------------------------------- */
+    if (skills.length > 0) {
+      doc.fontSize(16).text("Skills", { underline: true });
       doc.fontSize(12).text(skills.join(", "), { lineGap: 2 });
       doc.moveDown();
     }
 
-    // Education Section
+    /* -----------------------------------
+     * EDUCATION
+     * Matching Preview Layout
+     * ----------------------------------- */
     if (education.length > 0) {
       doc.fontSize(18).text("Education", { underline: true });
-      doc.moveDown(0.5);
+      doc.moveDown(0.7);
 
       education.forEach((edu) => {
-        doc.fontSize(14).text(`${edu.institute} (${edu.city})`, { continued: true })
-        doc.fontSize(12).text(` — ${edu.year}`);
-        doc.text(`Course: ${edu.course || "N/A"}`);
-        doc.text(`Grade: ${edu.grade || "N/A"}`);
-        doc.moveDown();
+        // Row 1: Institute, City — Years
+        doc.fontSize(14).text(
+          `${edu.institute || "Institute"}, ${edu.city || ""}`,
+          { continued: true }
+        );
+        doc.fontSize(12).text(
+          `  (${edu.startYear || "N/A"} - ${edu.endYear || "N/A"})`
+        );
+
+        // Row 2: Type + Department
+        doc.fontSize(12).text(
+          `${edu.type || ""} in ${edu.department || ""}`
+        );
+
+        // Row 3: Grade
+        doc.fontSize(12).text(`Grade: ${edu.grade || "N/A"}`);
+
+        doc.moveDown(0.8);
       });
     }
 
-    // Experience Section
+    /* -----------------------------------
+     * EXPERIENCE
+     * ----------------------------------- */
     if (experience.length > 0) {
       doc.fontSize(18).text("Experience", { underline: true });
-      doc.moveDown(0.5);
+      doc.moveDown(0.7);
 
       experience.forEach((exp) => {
-        doc.fontSize(14).text(`${exp.role} `, { continued: true });
-        doc.fontSize(12).text(`(${exp.duration})`);
-        doc.text(`Company: ${exp.company}`);
-        doc.text(`Description: ${exp.activities}`);
-        doc.moveDown();
+        // Row 1: Role + (Years)
+        doc.fontSize(14).text(`${exp.role || "Role"} `, { continued: true });
+        doc.fontSize(12).text(
+          ` (${exp.startYear || "N/A"} - ${exp.endYear || "N/A"})`
+        );
+
+        // Row 2: Company Name
+        doc.fontSize(12).text(`Company: ${exp.company || ""}`);
+
+        // Row 3: Description
+        doc.fontSize(12).text(exp.description || "");
+
+        doc.moveDown(0.8);
       });
     }
 
-    // Projects Section
+    /* -----------------------------------
+     * PROJECTS
+     * ----------------------------------- */
     if (projects.length > 0) {
       doc.fontSize(18).text("Projects", { underline: true });
-      doc.moveDown(0.5);
+      doc.moveDown(0.7);
 
       projects.forEach((proj) => {
-        // Title & Link row
-        doc.fontSize(14).text(`${proj.name}`, { continued: true });
-        if (proj.link) doc.fontSize(12).text(` — ${proj.link}`);
+        // Row 1: Title + Link
+        doc.fontSize(14).text(`${proj.title}`, { continued: true });
+        if (proj.link)
+          doc.fontSize(12).text(`  —  ${proj.link}`);
 
-        // Description
-        if (proj.description) doc.fontSize(12).text(`Description: ${proj.description}`);
+        // Row 2: Description
+        if (proj.description) {
+          doc.fontSize(12).text(proj.description);
+        }
 
-        // Key Points (Bullets)
-        if (proj.keyPoints?.length > 0) {
+        // Row 3: Key Points (Bullets)
+        if (proj.keyPoints && proj.keyPoints.length > 0) {
           doc.fontSize(12).text("Key Points:");
           proj.keyPoints.forEach((kp) => {
             doc.text(`• ${kp}`, { indent: 20, lineGap: 2 });
           });
         }
 
-        // Technologies
-        if (proj.technologies)
-          doc.fontSize(12).text(`Tech Used: ${proj.technologies}`);
+        // Row 4: Tech Used
+        if (proj.techStack)
+          doc.fontSize(12).text(`Tech Used: ${proj.techStack}`);
 
-        doc.moveDown();
+        doc.moveDown(0.8);
       });
     }
 
-    // Certificates
+    /* -----------------------------------
+     * CERTIFICATES
+     * ----------------------------------- */
     if (certificates.length > 0) {
       doc.fontSize(18).text("Certificates", { underline: true });
-      doc.moveDown(0.5);
+      doc.moveDown(0.7);
 
       certificates.forEach((cert) => {
         doc.fontSize(14).text(cert.title);
-        doc.fontSize(12).text(`Issued By: ${cert.issuedBy}`);
-        doc.text(`Issued On: ${cert.issuedOn}`);
-        if (cert.credential) doc.text(`Credential ID: ${cert.credential}`);
+        doc.fontSize(12).text(`Issued By: ${cert.issuer}`);
+        doc.text(`Year: ${cert.year}`);
         doc.moveDown();
       });
     }
 
+    /* -----------------------------------
+     * END PDF
+     * ----------------------------------- */
     doc.end();
 
     stream.on("finish", () => {
