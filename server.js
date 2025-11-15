@@ -4,7 +4,8 @@ import cors from "cors";
 import { MongoClient } from "mongodb";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
-import puppeteer from "puppeteer";
+import chromium from "@sparticuz/chromium";
+import puppeteer from "puppeteer-core";
 import fs from "fs";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
@@ -199,110 +200,71 @@ app.post("/pdf/export", async (req, res) => {
   try {
     const { form, gensummary } = req.body;
 
-    if (!form) return res.status(400).json({ error: "Form data is required" });
+    if (!form) {
+      return res.status(400).json({ error: "Form data is required" });
+    }
 
-    // Build HTML exactly like PreviewPage
+    // Escape summary safely
+    const safeSummary = (gensummary || "")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/\*/g, "");
+
     const html = `
       <html>
       <head>
         <style>
-          body { font-family: Arial; padding: 40px; background: white; }
+          body { font-family: Arial; padding: 40px; }
           h1,h2,h3 { margin: 0; }
           .center { text-align: center; }
           .section-title { margin-top: 20px; font-size: 18px; }
-          .flex { display: flex; justify-content: space-between; }
-          .skills { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
-          .skill-pill { border: 1px solid #000; border-radius: 6px; padding: 6px 12px; font-size: 14px; }
         </style>
       </head>
       <body>
         <div class="center">
           <h1>${form.name}</h1>
-          <h3>${form.role} Role</h3>
+          <h3>${form.role}</h3>
           <p>${form.emailId} | ${form.phoneNo} | ${form.linkedIn || ''} | ${form.portfolioLink || ''}</p>
         </div>
 
-        <h2 class="section-title">Summary</h2><hr style="border: 2px solid"/>
-        <p>${gensummary.replace(/\*/g, "")}</p>
+        <h2 class="section-title">Summary</h2><hr/>
+        <p>${safeSummary}</p>
 
-        <h2 class="section-title">Education</h2><hr style="border: 2px solid"/>
-        ${form.education?.map(e => `
-          <div style="margin-bottom:12px;">
-            <div  style="display:flex; justify-content:space-between; font-weight:600;">
-              <span>${e.institute}</span>
-              <span>${e.startYear} - ${e.endYear}</span>
-            </div>
-            <div style="display:flex; gap:10px; margin-top:4px;">
-              <span>${e.eduType}</span>
-              <span>${e.department}</span>
-              <span>${e.score}</span>
-            </div>
-          </div>
-        `).join('')}
-
-        ${form.skills?.length ? `
-          <h2 class="section-title">Skills</h2><hr style="border: 2px solid"/>
-          <div class="skills">
-            ${form.skills.map(s => `<span class="skill-pill">${s}</span>`).join('')}
-          </div>
-        ` : ''}
-
-        <h2 class="section-title">Experience</h2><hr style="border: 2px solid"/>
-        ${form.experience?.map(exp => `
-          <div style="margin-bottom:12px;">
-            <div class="flex" style="font-weight:600;">
-              <span>${exp.role}</span>
-              <span>${exp.duration}</span>
-            </div>
-            <div style="margin-top:4px;">${exp.company}</div>
-            ${exp.activities ? `<p>${exp.activities}</p>` : ''}
-          </div>
-        `).join('')}
-
-        <h2 class="section-title">Projects</h2><hr style="border: 2px solid"/>
-        ${form.projects?.map(p => `
-          <div style="margin-bottom:14px;">
-            <div class="flex" style="font-weight:600;">
-              <span>${p.name}</span>
-              ${p.link ? `<a href="${p.link}">${p.link}</a>` : ''}
-            </div>
-            <p>${p.description}</p>
-            ${p.keyPoints?.length ? `<ul>${p.keyPoints.filter(Boolean).map(kp => `<li>${kp}</li>`).join('')}</ul>` : ''}
-            <p><strong>Tech Used:</strong> ${p.technologies || ''}</p>
-          </div>
-        `).join('')}
-
-        <h2 class="section-title">Certificates</h2><hr style="border: 2px solid"/>
-        ${form.certificates?.map(c => `
-          <div style="margin-bottom:10px;">
-            <strong>${c.title}</strong>
-            <p>${c.issuedBy}</p>
-            ${c.credential ? `<p>${c.credential}</p>` : ''}
-          </div>
-        `).join('')}
       </body>
       </html>
     `;
 
-    const browser = await puppeteer.launch({ args: ['--no-sandbox'] });
+    // Puppeteer Setup for Render
+    const browser = await puppeteer.launch({
+      args: chromium.args,
+      defaultViewport: chromium.defaultViewport,
+      executablePath: await chromium.executablePath(),
+      headless: chromium.headless,
+    });
+
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: "networkidle0" });
-    const pdfBuffer = await page.pdf({ format: "A4", printBackground: true });
+
+    const pdfBuffer = await page.pdf({
+      format: "A4",
+      printBackground: true
+    });
 
     await browser.close();
 
     res.set({
       "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename=${form.name || "resume"}.pdf`,
-      "Content-Length": pdfBuffer.length
+      "Content-Disposition": `attachment; filename=${form.name}.pdf`,
     });
+
     res.send(pdfBuffer);
 
-  } catch (err) {
-    console.error("❌ PDF export failed:", err.message);
-    res.status(500).json({ error: "PDF export failed", details: err.message });
+  } catch (error) {
+    console.error("❌ PDF Export Failed:", error);
+    res.status(500).json({ error: "PDF export failed", details: error.message });
   }
 });
+
 
 // ======================
 // 🔹 Default Route
