@@ -197,7 +197,7 @@ app.get("/portfolio", authMiddleware, async (req, res) => {
 // ======================
 app.post("/pdf/export", async (req, res) => {
   try {
-    const { form, gensummary } = req.body;
+    const { form, summary } = req.body;
 
     if (!form) return res.status(400).json({ error: "Form data is required" });
 
@@ -223,7 +223,7 @@ app.post("/pdf/export", async (req, res) => {
         </div>
 
         <h2 class="section-title">Summary</h2><hr style="border: 2px solid"/>
-        <p>${gensummary.replace(/\*/g, "")}</p>
+        <p>${summary.replace(/\*/g, "")}</p>
 
         <h2 class="section-title">Education</h2><hr style="border: 2px solid"/>
         ${form.education?.map(e => `
