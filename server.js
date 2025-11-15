@@ -218,17 +218,17 @@ app.post("/pdf/export", async (req, res) => {
       <body>
         <div class="center">
           <h1>${form.name}</h1>
-          <h3>${form.role}</h3>
+          <h3>${form.role} Role</h3>
           <p>${form.emailId} | ${form.phoneNo} | ${form.linkedIn || ''} | ${form.portfolioLink || ''}</p>
         </div>
 
-        <h2 class="section-title">Summary</h2><hr/>
+        <h2 class="section-title">Summary</h2><hr style="border: 2px solid"/>
         <p>${gensummary.replace(/\*/g, "")}</p>
 
-        <h2 class="section-title">Education</h2><hr/>
+        <h2 class="section-title">Education</h2><hr style="border: 2px solid"/>
         ${form.education?.map(e => `
           <div style="margin-bottom:12px;">
-            <div class="flex" style="font-weight:600;">
+            <div  style="display:flex; justify-content:space-between; font-weight:600;">
               <span>${e.institute}</span>
               <span>${e.startYear} - ${e.endYear}</span>
             </div>
@@ -241,13 +241,13 @@ app.post("/pdf/export", async (req, res) => {
         `).join('')}
 
         ${form.skills?.length ? `
-          <h2 class="section-title">Skills</h2><hr/>
+          <h2 class="section-title">Skills</h2><hr style="border: 2px solid"/>
           <div class="skills">
             ${form.skills.map(s => `<span class="skill-pill">${s}</span>`).join('')}
           </div>
         ` : ''}
 
-        <h2 class="section-title">Experience</h2><hr/>
+        <h2 class="section-title">Experience</h2><hr style="border: 2px solid"/>
         ${form.experience?.map(exp => `
           <div style="margin-bottom:12px;">
             <div class="flex" style="font-weight:600;">
@@ -259,7 +259,7 @@ app.post("/pdf/export", async (req, res) => {
           </div>
         `).join('')}
 
-        <h2 class="section-title">Projects</h2><hr/>
+        <h2 class="section-title">Projects</h2><hr style="border: 2px solid"/>
         ${form.projects?.map(p => `
           <div style="margin-bottom:14px;">
             <div class="flex" style="font-weight:600;">
@@ -272,7 +272,7 @@ app.post("/pdf/export", async (req, res) => {
           </div>
         `).join('')}
 
-        <h2 class="section-title">Certificates</h2><hr/>
+        <h2 class="section-title">Certificates</h2><hr style="border: 2px solid"/>
         ${form.certificates?.map(c => `
           <div style="margin-bottom:10px;">
             <strong>${c.title}</strong>
