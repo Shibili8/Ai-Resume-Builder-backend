@@ -193,12 +193,7 @@ app.get("/portfolio", authMiddleware, async (req, res) => {
 });
 
 // ======================
-// 🔹 PDF Resume Export
-// ======================
-import puppeteer from "puppeteer";
-
-// ======================
-// PDF Export - Stable Version
+// 🔹 PDF Resume Export (Final Stable Version)
 // ======================
 app.post("/pdf/export", async (req, res) => {
   try {
@@ -210,44 +205,52 @@ app.post("/pdf/export", async (req, res) => {
 
     const safe = (v) => (v ? v : "");
 
+    // -------------------------
+    // HTML TEMPLATE FOR PDF
+    // -------------------------
     const html = `
       <html>
       <head>
         <style>
-          body { font-family: Arial; padding: 40px; }
+          body { font-family: Arial, sans-serif; padding: 40px; }
+          h1, h2, h3 { margin: 4px 0; }
           .center { text-align: center; }
           .flex { display: flex; justify-content: space-between; }
-          .skills { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+          hr { margin: 6px 0 10px; }
+          .skills { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
           .skill-pill { border: 1px solid #000; padding: 6px 12px; border-radius: 6px; }
-          hr { margin: 8px 0 12px 0; }
+          p { margin: 4px 0; }
         </style>
       </head>
+
       <body>
 
+        <!-- HEADER -->
         <div class="center">
           <h1>${safe(form.name)}</h1>
           <h3>${safe(form.role)}</h3>
           <p>${safe(form.emailId)} | ${safe(form.phoneNo)} | ${safe(form.linkedIn)} | ${safe(form.portfolioLink)}</p>
         </div>
 
+        <!-- SUMMARY -->
         <h2>Summary</h2><hr/>
         <p>${safe(gensummary).replace(/\*/g, "")}</p>
 
+        <!-- EDUCATION -->
         <h2>Education</h2><hr/>
         ${form.education?.map(e => `
           <div style="margin-bottom:12px;">
-            <div class="flex" style="font-weight:600;">
+            <div class="flex" style="font-weight:bold;">
               <span>${safe(e.institute)}</span>
               <span>${safe(e.startYear)} - ${safe(e.endYear)}</span>
             </div>
-            <div style="display:flex; gap:10px; margin-top:4px;">
-              <span>${safe(e.eduType)}</span>
-              <span>${safe(e.department)}</span>
-              <span>${safe(e.score)}</span>
+            <div style="margin-top:4px;">
+              ${safe(e.eduType)} | ${safe(e.department)} | ${safe(e.score)}
             </div>
           </div>
         `).join("")}
 
+        <!-- SKILLS -->
         ${form.skills?.length ? `
           <h2>Skills</h2><hr/>
           <div class="skills">
@@ -255,18 +258,20 @@ app.post("/pdf/export", async (req, res) => {
           </div>
         ` : ""}
 
+        <!-- EXPERIENCE -->
         <h2>Experience</h2><hr/>
         ${form.experience?.map(exp => `
-          <div style="margin-bottom:12px;">
+          <div style="margin-bottom:14px;">
             <div class="flex" style="font-weight:600;">
               <span>${safe(exp.role)}</span>
               <span>${safe(exp.duration)}</span>
             </div>
-            <div>${safe(exp.company)}</div>
+            <div style="margin-top:4px; font-weight:500;">${safe(exp.company)}</div>
             <p>${safe(exp.activities)}</p>
           </div>
         `).join("")}
 
+        <!-- PROJECTS -->
         <h2>Projects</h2><hr/>
         ${form.projects?.map(p => `
           <div style="margin-bottom:14px;">
@@ -276,14 +281,13 @@ app.post("/pdf/export", async (req, res) => {
             </div>
             <p>${safe(p.description)}</p>
 
-            ${p.keyPoints?.length ? `
-              <ul>${p.keyPoints.filter(Boolean).map(k => `<li>${safe(k)}</li>`).join("")}</ul>
-            ` : ""}
+            <ul>${p.keyPoints?.filter(Boolean).map(k => `<li>${safe(k)}</li>`).join("")}</ul>
 
             <p><strong>Tech Used:</strong> ${safe(p.technologies)}</p>
           </div>
         `).join("")}
 
+        <!-- CERTIFICATES -->
         <h2>Certificates</h2><hr/>
         ${form.certificates?.map(c => `
           <div style="margin-bottom:10px;">
@@ -297,9 +301,16 @@ app.post("/pdf/export", async (req, res) => {
       </html>
     `;
 
+    // -------------------------
+    // PDF GENERATION (Puppeteer)
+    // -------------------------
     const browser = await puppeteer.launch({
       headless: "new",
-      args: ["--no-sandbox", "--disable-setuid-sandbox"]
+      args: [
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-dev-shm-usage"
+      ]
     });
 
     const page = await browser.newPage();
@@ -307,7 +318,13 @@ app.post("/pdf/export", async (req, res) => {
 
     const pdfBuffer = await page.pdf({
       format: "A4",
-      printBackground: true
+      printBackground: true,
+      margin: {
+        top: "20px",
+        bottom: "20px",
+        left: "20px",
+        right: "20px",
+      }
     });
 
     await browser.close();
@@ -324,6 +341,7 @@ app.post("/pdf/export", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
 
 // ======================
 // 🔹 Default Route
