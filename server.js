@@ -69,6 +69,32 @@ async function generateWithRetry(prompt, retries = 3) {
   }
 }
 
+// ---------- PUPPETEER EXECUTABLE FIX (LOCAL + VERCEL + RENDER + WINDOWS) ----------
+const getPuppeteerOptions = async () => {
+  const isLocal = process.platform === "win32" || process.platform === "darwin";
+
+  if (isLocal) {
+    // Local machine → use full Puppeteer (NOT puppeteer-core)
+    return {
+      headless: true,
+      executablePath: puppeteer.executablePath(), 
+      args: ["--no-sandbox", "--disable-setuid-sandbox"]
+    };
+  } else {
+    // Serverless (Render / Vercel / Railway)
+    return {
+      headless: chromium.headless,
+      executablePath: await chromium.executablePath(),
+      args: [
+        ...chromium.args,
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+      ]
+    };
+  }
+};
+
+
 // ======================
 // 🔹 JWT Middleware
 // ======================
@@ -201,13 +227,10 @@ app.post("/pdf/export", async (req, res) => {
     console.log("📥 PDF Export request received");
 
     const { form, gensummary } = req.body;
-    if (!form) {
-      return res.status(400).json({ error: "Form data is required" });
-    }
+    if (!form) return res.status(400).json({ error: "Form data is required" });
 
     const safe = (v) => (v ? v : "");
     const cleanSummary = (gensummary || "").replace(/\*/g, "");
-
     const html = `
     <html>
     <head>
@@ -333,12 +356,9 @@ app.post("/pdf/export", async (req, res) => {
     `;
 
     // ----------- FIX FOR WINDOWS + RENDER + LOCAL -----------
-    const browser = await puppeteer.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
-    });
-
+    const browser = await puppeteer.launch(await getPuppeteerOptions());
     const page = await browser.newPage();
+
     await page.setContent(html, { waitUntil: "domcontentloaded" });
     await page.emulateMediaType("screen");
 
@@ -347,7 +367,7 @@ app.post("/pdf/export", async (req, res) => {
 
     res.set({
       "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="${form.name || "resume"}.pdf"`,
+      "Content-Disposition": `attachment; filename="${form.name || "resume"}.pdf"`
     });
 
     return res.send(pdfBuffer);
@@ -360,6 +380,7 @@ app.post("/pdf/export", async (req, res) => {
     });
   }
 });
+
 
 // ======================
 // 🔹 Default Route
