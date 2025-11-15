@@ -201,52 +201,82 @@ app.post("/pdf/export", async (req, res) => {
     const { form, gensummary } = req.body;
     if (!form) return res.status(400).json({ error: "Form data is required" });
 
+    const safe = (v) => (v ? v : "");
     const cleanSummary = (gensummary || "").replace(/\*/g, "");
 
-    // ---------- FIX EMPTY / NULL FIELDS ----------
-    const safe = (v) => (v ? v : "");
-
-    // ---------- HTML TEMPLATE ----------
+    // ---------- CLEAN HTML LAYOUT (IMPROVED DESIGN + FIXED CSS) ----------
     const html = `
     <html>
     <head>
+      <meta charset="UTF-8" />
       <style>
         body { 
           font-family: Arial, sans-serif; 
           padding: 40px; 
-          background: white; 
+          background: #fff; 
+          color: #000;
+          line-height: 1.5;
         }
-        h1,h2,h3 { margin: 0; }
-        .section { margin-top: 25px; }
-        .title { font-size: 20px; font-weight: bold; margin-bottom: 5px; }
-        hr { border: 1.5px solid #000; margin-bottom: 10px; }
-        .flex-between { display: flex; justify-content: space-between; }
-        .skills { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+
+        h1, h2, h3 { margin: 0; padding: 0; }
+        p { margin: 6px 0; font-size: 14px; }
+
+        .section { margin-top: 30px; page-break-inside: avoid; }
+        .title { 
+          font-size: 18px; 
+          font-weight: bold; 
+          margin-bottom: 5px; 
+        }
+
+        hr { 
+          border: 0; 
+          border-top: 1.5px solid #000; 
+          margin-bottom: 15px; 
+        }
+
+        .flex-between { 
+          display: flex; 
+          justify-content: space-between; 
+          font-size: 14px;
+        }
+
+        .skills { 
+          display: flex; 
+          flex-wrap: wrap; 
+          gap: 8px; 
+        }
+
         .skill-pill { 
           border: 1px solid #000; 
           border-radius: 6px; 
           padding: 6px 10px; 
-          font-size: 14px; 
+          font-size: 13px; 
         }
-        ul { margin-top: 5px; }
+
+        ul { margin-top: 5px; padding-left: 18px; }
+        li { margin-bottom: 4px; font-size: 14px; }
+
+        a { font-size: 13px; color: #000; word-break: break-all; }
       </style>
     </head>
 
     <body>
 
       <!-- HEADER -->
-      <div style="text-align:center; margin-bottom:20px;">
-        <h1>${safe(form.name)}</h1>
-        <h3>${safe(form.role)}</h3>
-        <p>
-          ${safe(form.emailId)} | ${safe(form.phoneNo)} |
-          ${safe(form.linkedIn)} | ${safe(form.portfolioLink)}
+      <div style="text-align:center; margin-bottom:25px;">
+        <h1 style="font-size:28px;">${safe(form.name)}</h1>
+        <h3 style="font-size:16px; margin-top:5px;">
+          ${safe(form.role)}
+        </h3>
+        <p style="font-size:13px; margin-top:8px;">
+          ${safe(form.emailId)} • ${safe(form.phoneNo)} • 
+          ${safe(form.linkedIn)} • ${safe(form.portfolioLink)}
         </p>
       </div>
 
       <!-- SUMMARY -->
       <div class="section">
-        <div class="title">Summary</div>
+        <div class="title">Professional Summary</div>
         <hr/>
         <p>${cleanSummary}</p>
       </div>
@@ -258,16 +288,12 @@ app.post("/pdf/export", async (req, res) => {
         ${form.education
           ?.map(
             (e) => `
-          <div style="margin-bottom:15px;">
-            <div class="flex-between" style="font-weight:600;">
-              <span>${safe(e.institute)}</span>
-              <span>${safe(e.startYear)} - ${safe(e.endYear)}</span>
+          <div style="margin-bottom:18px;">
+            <div class="flex-between">
+              <strong>${safe(e.institute)}</strong>
+              <span>${safe(e.startYear)} – ${safe(e.endYear)}</span>
             </div>
-            <div style="display:flex; gap:10px; margin-top:4px;">
-              <span>${safe(e.eduType)}</span>
-              <span>${safe(e.department)}</span>
-              <span>${safe(e.score)}</span>
-            </div>
+            <p>${safe(e.eduType)} • ${safe(e.department)} • ${safe(e.score)}</p>
           </div>`
           )
           .join("")}
@@ -282,32 +308,36 @@ app.post("/pdf/export", async (req, res) => {
           <hr/>
           <div class="skills">
             ${form.skills
-              .map((s) => `<span class="skill-pill">${safe(s)}</span>`) 
+              .map((s) => `<span class="skill-pill">${safe(s)}</span>`)
               .join("")}
           </div>
-        </div>
-      `
+        </div>`
           : ""
       }
 
       <!-- EXPERIENCE -->
+      ${
+        form.experience?.length
+          ? `
       <div class="section">
         <div class="title">Experience</div>
         <hr/>
         ${form.experience
-          ?.map(
+          .map(
             (exp) => `
-        <div style="margin-bottom:12px;">
-          <div class="flex-between" style="font-weight:600;">
-            <span>${safe(exp.role)}</span>
+        <div style="margin-bottom:18px;">
+          <div class="flex-between">
+            <strong>${safe(exp.role)}</strong>
             <span>${safe(exp.duration)}</span>
           </div>
-          <div>${safe(exp.company)}</div>
-          ${exp.activities ? `<p>${safe(exp.activities)}</p>` : ""}
+          <p><strong>${safe(exp.company)}</strong></p>
+          <p>${safe(exp.activities)}</p>
         </div>`
           )
           .join("")}
-      </div>
+      </div>`
+          : ""
+      }
 
       <!-- PROJECTS -->
       <div class="section">
@@ -316,14 +346,12 @@ app.post("/pdf/export", async (req, res) => {
         ${form.projects
           ?.map(
             (p) => `
-        <div style="margin-bottom:14px;">
-          <div class="flex-between" style="font-weight:600;">
-            <span>${safe(p.name)}</span>
+        <div style="margin-bottom:20px;">
+          <div class="flex-between">
+            <strong>${safe(p.name)}</strong>
             ${
               p.link
-                ? `<a href="${p.link.startsWith("http") ? p.link : "https://" + p.link}">
-                    ${p.link}
-                   </a>`
+                ? `<a href="${p.link.startsWith("http") ? p.link : "https://" + p.link}">${p.link}</a>`
                 : ""
             }
           </div>
@@ -346,51 +374,68 @@ app.post("/pdf/export", async (req, res) => {
       </div>
 
       <!-- CERTIFICATES -->
+      ${
+        form.certificates?.length
+          ? `
       <div class="section">
         <div class="title">Certificates</div>
         <hr/>
         ${form.certificates
-          ?.map(
+          .map(
             (c) => `
-        <div style="margin-bottom:10px;">
+        <div style="margin-bottom:12px;">
           <strong>${safe(c.title)}</strong>
           <p>${safe(c.issuedBy)}</p>
           ${c.credential ? `<p>${safe(c.credential)}</p>` : ""}
         </div>`
           )
           .join("")}
-      </div>
+      </div>`
+          : ""
+      }
 
     </body>
     </html>
     `;
 
-    // ---------- PUPPETEER (RENDER.COM SAFE) ----------
+    // ----------- PUPPETEER — FIX ALL PDF CORRUPTION ISSUES -----------
     const browser = await puppeteer.launch({
-      args: chromium.args,
-      defaultViewport: chromium.defaultViewport,
-      executablePath: await chromium.executablePath(),
-      headless: chromium.headless,
+      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+      headless: true,
     });
 
     const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: "networkidle0" });
 
-    const pdfBuffer = await page.pdf({ format: "A4", printBackground: true });
+    await page.setContent(html, {
+      waitUntil: ["domcontentloaded", "networkidle0"],
+    });
+
+    await page.emulateMediaType("screen");
+
+    const pdfBuffer = await page.pdf({
+      format: "A4",
+      printBackground: true,
+      preferCSSPageSize: true,
+    });
+
     await browser.close();
 
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename="${form.name || "resume"}.pdf"`
+      `attachment; filename="${safe(form.name) || "resume"}.pdf"`
     );
 
-    res.send(pdfBuffer);
+    return res.end(pdfBuffer);
+
   } catch (err) {
     console.error("❌ PDF EXPORT ERROR:", err);
-    res.status(500).json({ error: "PDF export failed", details: err.message });
+    return res
+      .status(500)
+      .json({ error: "PDF export failed", details: err.message });
   }
 });
+
 // ======================
 // 🔹 Default Route
 // ======================
