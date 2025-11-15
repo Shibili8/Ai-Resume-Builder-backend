@@ -9,7 +9,7 @@ import fs from "fs";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import bodyParser from "body-parser";
+
 
 
 dotenv.config();
@@ -19,9 +19,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const app = express();
-app.use(cors());
-app.use(bodyParser.json({ limit: "50mb" }));
-app.use(bodyParser.urlencoded({ extended: true, limit: "50mb" }));
+app.use(express.json({ limit: "2mb" }));
+app.use(cors({ origin: process.env.FRONTEND_ORIGIN || "*" }));
 
 // ======================
 // 🔹 MongoDB Connection
@@ -194,62 +193,116 @@ app.get("/portfolio", authMiddleware, async (req, res) => {
 });
 
 // ======================
-// 🔹 PDF Resume Export (Final Stable Version)
+// 🔹 PDF Resume Export
 // ======================
 app.post("/pdf/export", async (req, res) => {
   try {
-    const { html } = req.body;
+    const { form, gensummary } = req.body;
 
-    if (!html) {
-      return res.status(400).json({ error: "HTML content missing" });
-    }
+    if (!form) return res.status(400).json({ error: "Form data is required" });
 
-    console.log("📄 Received HTML for PDF export");
+    // Build HTML exactly like PreviewPage
+    const html = `
+      <html>
+      <head>
+        <style>
+          body { font-family: Arial; padding: 40px; background: white; }
+          h1,h2,h3 { margin: 0; }
+          .center { text-align: center; }
+          .section-title { margin-top: 20px; font-size: 18px; }
+          .flex { display: flex; justify-content: space-between; }
+          .skills { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+          .skill-pill { border: 1px solid #000; border-radius: 6px; padding: 6px 12px; font-size: 14px; }
+        </style>
+      </head>
+      <body>
+        <div class="center">
+          <h1>${form.name}</h1>
+          <h3>${form.role} Role</h3>
+          <p>${form.emailId} | ${form.phoneNo} | ${form.linkedIn || ''} | ${form.portfolioLink || ''}</p>
+        </div>
 
-    // Launch Puppeteer
-    const browser = await puppeteer.launch({
-      headless: "new",
-      args: [
-        "--no-sandbox",
-        "--disable-setuid-sandbox",
-        "--disable-gpu",
-        "--disable-dev-shm-usage",
-      ],
-    });
+        <h2 class="section-title">Summary</h2><hr style="border: 2px solid"/>
+        <p>${gensummary.replace(/\*/g, "")}</p>
 
+        <h2 class="section-title">Education</h2><hr style="border: 2px solid"/>
+        ${form.education?.map(e => `
+          <div style="margin-bottom:12px;">
+            <div  style="display:flex; justify-content:space-between; font-weight:600;">
+              <span>${e.institute}</span>
+              <span>${e.startYear} - ${e.endYear}</span>
+            </div>
+            <div style="display:flex; gap:10px; margin-top:4px;">
+              <span>${e.eduType}</span>
+              <span>${e.department}</span>
+              <span>${e.score}</span>
+            </div>
+          </div>
+        `).join('')}
+
+        ${form.skills?.length ? `
+          <h2 class="section-title">Skills</h2><hr style="border: 2px solid"/>
+          <div class="skills">
+            ${form.skills.map(s => `<span class="skill-pill">${s}</span>`).join('')}
+          </div>
+        ` : ''}
+
+        <h2 class="section-title">Experience</h2><hr style="border: 2px solid"/>
+        ${form.experience?.map(exp => `
+          <div style="margin-bottom:12px;">
+            <div class="flex" style="font-weight:600;">
+              <span>${exp.role}</span>
+              <span>${exp.duration}</span>
+            </div>
+            <div style="margin-top:4px;">${exp.company}</div>
+            ${exp.activities ? `<p>${exp.activities}</p>` : ''}
+          </div>
+        `).join('')}
+
+        <h2 class="section-title">Projects</h2><hr style="border: 2px solid"/>
+        ${form.projects?.map(p => `
+          <div style="margin-bottom:14px;">
+            <div class="flex" style="font-weight:600;">
+              <span>${p.name}</span>
+              ${p.link ? `<a href="${p.link}">${p.link}</a>` : ''}
+            </div>
+            <p>${p.description}</p>
+            ${p.keyPoints?.length ? `<ul>${p.keyPoints.filter(Boolean).map(kp => `<li>${kp}</li>`).join('')}</ul>` : ''}
+            <p><strong>Tech Used:</strong> ${p.technologies || ''}</p>
+          </div>
+        `).join('')}
+
+        <h2 class="section-title">Certificates</h2><hr style="border: 2px solid"/>
+        ${form.certificates?.map(c => `
+          <div style="margin-bottom:10px;">
+            <strong>${c.title}</strong>
+            <p>${c.issuedBy}</p>
+            ${c.credential ? `<p>${c.credential}</p>` : ''}
+          </div>
+        `).join('')}
+      </body>
+      </html>
+    `;
+
+    const browser = await puppeteer.launch({ args: ['--no-sandbox'] });
     const page = await browser.newPage();
-
-    // Set HTML content
     await page.setContent(html, { waitUntil: "networkidle0" });
-
-    // Create PDF
-    const pdf = await page.pdf({
-      format: "A4",
-      printBackground: true,
-      margin: {
-        top: "20px",
-        bottom: "20px",
-        left: "20px",
-        right: "20px",
-      },
-    });
+    const pdfBuffer = await page.pdf({ format: "A4", printBackground: true });
 
     await browser.close();
 
-    // Send PDF
     res.set({
       "Content-Type": "application/pdf",
-      "Content-Disposition": "attachment; filename=resume.pdf",
-      "Content-Length": pdf.length,
+      "Content-Disposition": `attachment; filename=${form.name || "resume"}.pdf`,
+      "Content-Length": pdfBuffer.length
     });
-
-    return res.send(pdf);
+    res.send(pdfBuffer);
 
   } catch (err) {
-    console.error("❌ PDF Export Error ->", err);
-    return res.status(500).json({ error: "Failed to generate PDF" });
+    console.error("❌ PDF export failed:", err.message);
+    res.status(500).json({ error: "PDF export failed", details: err.message });
   }
-}); 
+});
 
 // ======================
 // 🔹 Default Route
