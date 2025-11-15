@@ -9,7 +9,7 @@ import fs from "fs";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-
+import bodyParser from "body-parser";
 
 
 dotenv.config();
@@ -19,8 +19,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const app = express();
-app.use(express.json({ limit: "2mb" }));
-app.use(cors({ origin: process.env.FRONTEND_ORIGIN || "*" }));
+app.use(cors());
+app.use(bodyParser.json({ limit: "50mb" }));
+app.use(bodyParser.urlencoded({ extended: true, limit: "50mb" }));
 
 // ======================
 // 🔹 MongoDB Connection
@@ -197,126 +198,32 @@ app.get("/portfolio", authMiddleware, async (req, res) => {
 // ======================
 app.post("/pdf/export", async (req, res) => {
   try {
-    const { form, gensummary } = req.body;
+    const { html } = req.body;
 
-    if (!form) {
-      return res.status(400).json({ error: "Form data missing" });
+    if (!html) {
+      return res.status(400).json({ error: "HTML content missing" });
     }
 
-    const safe = (v) => (v ? v : "");
+    console.log("📄 Received HTML for PDF export");
 
-    // -------------------------
-    // HTML TEMPLATE FOR PDF
-    // -------------------------
-    const html = `
-      <html>
-      <head>
-        <style>
-          body { font-family: Arial, sans-serif; padding: 40px; }
-          h1, h2, h3 { margin: 4px 0; }
-          .center { text-align: center; }
-          .flex { display: flex; justify-content: space-between; }
-          hr { margin: 6px 0 10px; }
-          .skills { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
-          .skill-pill { border: 1px solid #000; padding: 6px 12px; border-radius: 6px; }
-          p { margin: 4px 0; }
-        </style>
-      </head>
-
-      <body>
-
-        <!-- HEADER -->
-        <div class="center">
-          <h1>${safe(form.name)}</h1>
-          <h3>${safe(form.role)}</h3>
-          <p>${safe(form.emailId)} | ${safe(form.phoneNo)} | ${safe(form.linkedIn)} | ${safe(form.portfolioLink)}</p>
-        </div>
-
-        <!-- SUMMARY -->
-        <h2>Summary</h2><hr/>
-        <p>${safe(gensummary).replace(/\*/g, "")}</p>
-
-        <!-- EDUCATION -->
-        <h2>Education</h2><hr/>
-        ${form.education?.map(e => `
-          <div style="margin-bottom:12px;">
-            <div class="flex" style="font-weight:bold;">
-              <span>${safe(e.institute)}</span>
-              <span>${safe(e.startYear)} - ${safe(e.endYear)}</span>
-            </div>
-            <div style="margin-top:4px;">
-              ${safe(e.eduType)} | ${safe(e.department)} | ${safe(e.score)}
-            </div>
-          </div>
-        `).join("")}
-
-        <!-- SKILLS -->
-        ${form.skills?.length ? `
-          <h2>Skills</h2><hr/>
-          <div class="skills">
-            ${form.skills.map(s => `<span class="skill-pill">${safe(s)}</span>`).join("")}
-          </div>
-        ` : ""}
-
-        <!-- EXPERIENCE -->
-        <h2>Experience</h2><hr/>
-        ${form.experience?.map(exp => `
-          <div style="margin-bottom:14px;">
-            <div class="flex" style="font-weight:600;">
-              <span>${safe(exp.role)}</span>
-              <span>${safe(exp.duration)}</span>
-            </div>
-            <div style="margin-top:4px; font-weight:500;">${safe(exp.company)}</div>
-            <p>${safe(exp.activities)}</p>
-          </div>
-        `).join("")}
-
-        <!-- PROJECTS -->
-        <h2>Projects</h2><hr/>
-        ${form.projects?.map(p => `
-          <div style="margin-bottom:14px;">
-            <div class="flex" style="font-weight:600;">
-              <span>${safe(p.name)}</span>
-              <a href="${safe(p.link)}">${safe(p.link)}</a>
-            </div>
-            <p>${safe(p.description)}</p>
-
-            <ul>${p.keyPoints?.filter(Boolean).map(k => `<li>${safe(k)}</li>`).join("")}</ul>
-
-            <p><strong>Tech Used:</strong> ${safe(p.technologies)}</p>
-          </div>
-        `).join("")}
-
-        <!-- CERTIFICATES -->
-        <h2>Certificates</h2><hr/>
-        ${form.certificates?.map(c => `
-          <div style="margin-bottom:10px;">
-            <strong>${safe(c.title)}</strong>
-            <p>${safe(c.issuedBy)}</p>
-            <p>${safe(c.credential)}</p>
-          </div>
-        `).join("")}
-
-      </body>
-      </html>
-    `;
-
-    // -------------------------
-    // PDF GENERATION (Puppeteer)
-    // -------------------------
+    // Launch Puppeteer
     const browser = await puppeteer.launch({
       headless: "new",
       args: [
         "--no-sandbox",
         "--disable-setuid-sandbox",
-        "--disable-dev-shm-usage"
-      ]
+        "--disable-gpu",
+        "--disable-dev-shm-usage",
+      ],
     });
 
     const page = await browser.newPage();
+
+    // Set HTML content
     await page.setContent(html, { waitUntil: "networkidle0" });
 
-    const pdfBuffer = await page.pdf({
+    // Create PDF
+    const pdf = await page.pdf({
       format: "A4",
       printBackground: true,
       margin: {
@@ -324,24 +231,25 @@ app.post("/pdf/export", async (req, res) => {
         bottom: "20px",
         left: "20px",
         right: "20px",
-      }
+      },
     });
 
     await browser.close();
 
+    // Send PDF
     res.set({
       "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="resume.pdf"`,
+      "Content-Disposition": "attachment; filename=resume.pdf",
+      "Content-Length": pdf.length,
     });
 
-    res.send(pdfBuffer);
+    return res.send(pdf);
 
   } catch (err) {
-    console.error("❌ PDF EXPORT ERROR:", err);
-    res.status(500).json({ error: err.message });
+    console.error("❌ PDF Export Error ->", err);
+    return res.status(500).json({ error: "Failed to generate PDF" });
   }
-});
-
+}); 
 
 // ======================
 // 🔹 Default Route
