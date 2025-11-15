@@ -5,7 +5,7 @@ import { MongoClient } from "mongodb";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import chromium from "@sparticuz/chromium";
-import puppeteer from "puppeteer-core";
+import puppeteer from "puppeteer";
 import fs from "fs";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
@@ -69,30 +69,39 @@ async function generateWithRetry(prompt, retries = 3) {
   }
 }
 
-// ---------- PUPPETEER EXECUTABLE FIX (LOCAL + VERCEL + RENDER + WINDOWS) ----------
+// ---------- UNIVERSAL PUPPETEER LAUNCHER (Fix for Windows + Render) ----------
 const getPuppeteerOptions = async () => {
-  const isLocal = process.platform === "win32" || process.platform === "darwin";
+  const isLocal =
+    process.platform === "win32" ||
+    process.platform === "darwin" ||
+    process.env.LOCAL_PDF === "true";
 
   if (isLocal) {
-    // Local machine → use full Puppeteer (NOT puppeteer-core)
+    console.log("📌 Running PDF generation in LOCAL mode");
+
+    const fullPuppeteer = await import("puppeteer");
+
     return {
       headless: true,
-      executablePath: puppeteer.executablePath(), 
-      args: ["--no-sandbox", "--disable-setuid-sandbox"]
-    };
-  } else {
-    // Serverless (Render / Vercel / Railway)
-    return {
-      headless: chromium.headless,
-      executablePath: await chromium.executablePath(),
-      args: [
-        ...chromium.args,
-        "--no-sandbox",
-        "--disable-setuid-sandbox",
-      ]
+      executablePath: fullPuppeteer.executablePath(),
+      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+      product: "chrome",
     };
   }
+
+  console.log("📌 Running PDF generation in SERVERLESS mode");
+
+  return {
+    headless: chromium.headless,
+    executablePath: await chromium.executablePath(),
+    args: [
+      ...chromium.args,
+      "--no-sandbox",
+      "--disable-setuid-sandbox",
+    ],
+  };
 };
+
 
 
 // ======================
@@ -355,32 +364,37 @@ app.post("/pdf/export", async (req, res) => {
     </html>
     `;
 
-    // ----------- FIX FOR WINDOWS + RENDER + LOCAL -----------
-    const browser = await puppeteer.launch(await getPuppeteerOptions());
+     const puppeteerOptions = await getPuppeteerOptions();
+    const fullPuppeteer = puppeteerOptions.executablePath
+      ? puppeteer
+      : await import("puppeteer");
+
+    const browser = await fullPuppeteer.launch(puppeteerOptions);
     const page = await browser.newPage();
 
-    await page.setContent(html, { waitUntil: "domcontentloaded" });
+    await page.setContent(html, { waitUntil: "networkidle0" });
     await page.emulateMediaType("screen");
 
-    const pdfBuffer = await page.pdf({ format: "A4", printBackground: true });
+    const pdfBuffer = await page.pdf({
+      format: "A4",
+      printBackground: true,
+      preferCSSPageSize: true,
+    });
+
     await browser.close();
 
     res.set({
       "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="${form.name || "resume"}.pdf"`
+      "Content-Disposition": `attachment; filename="${form.name || "resume"}.pdf"`,
     });
 
-    return res.send(pdfBuffer);
+    res.send(pdfBuffer);
 
   } catch (err) {
     console.error("❌ PDF EXPORT ERROR:", err);
-    return res.status(500).json({
-      error: "PDF export failed",
-      details: err.message,
-    });
+    res.status(500).json({ error: "PDF export failed", details: err.message });
   }
 });
-
 
 // ======================
 // 🔹 Default Route
