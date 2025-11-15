@@ -4,7 +4,8 @@ import cors from "cors";
 import { MongoClient } from "mongodb";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
-import puppeteer from "puppeteer";
+import chromium from "@sparticuz/chromium";
+import puppeteer from "puppeteer-core";
 import fs from "fs";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
@@ -197,75 +198,169 @@ app.get("/portfolio", authMiddleware, async (req, res) => {
 // ======================
 app.post("/pdf/export", async (req, res) => {
   try {
+    console.log("📥 PDF Export request received");
+
     const { form, gensummary } = req.body;
     if (!form) {
-      return res.status(400).json({ error: "Missing form data" });
+      return res.status(400).json({ error: "Form data is required" });
     }
 
     const safe = (v) => (v ? v : "");
-    const summary = (gensummary || "").replace(/\*/g, "");
+    const cleanSummary = (gensummary || "").replace(/\*/g, "");
 
     const html = `
-      <html>
-        <head>
-          <meta charset="utf-8" />
-          <style>
-            body { font-family: Arial; padding: 40px; }
-            h1 { margin:0; padding:0; }
-            .section { margin-top: 25px; }
-            .title { font-size: 18px; font-weight: bold; margin-bottom: 5px; }
-            hr { border: 1px solid #000; margin-bottom: 10px; }
-          </style>
-        </head>
-        <body>
-          <h1>${safe(form.name)}</h1>
-          <h3>${safe(form.role)}</h3>
-          <p>${safe(form.emailId)} | ${safe(form.phoneNo)}</p>
+    <html>
+    <head>
+      <meta charset="utf-8" />
+      <style>
+        body { font-family: Arial, sans-serif; padding: 40px; background: white; }
+        h1,h2,h3 { margin: 0; }
+        .section { margin-top: 25px; }
+        .title { font-size: 20px; font-weight: bold; margin-bottom: 5px; }
+        hr { border: 1.5px solid #000; margin-bottom: 10px; }
+        .flex-between { display: flex; justify-content: space-between; }
+        ul { margin-top: 5px; }
+      </style>
+    </head>
 
-          <div class="section">
-            <div class="title">Summary</div>
-            <hr />
-            <p>${summary}</p>
+    <body>
+
+      <div style="text-align:center; margin-bottom:20px;">
+        <h1>${safe(form.name)}</h1>
+        <h3>${safe(form.role)}</h3>
+        <p>
+          ${safe(form.emailId)} | ${safe(form.phoneNo)} |
+          ${safe(form.linkedIn)} | ${safe(form.portfolioLink)}
+        </p>
+      </div>
+
+      <div class="section">
+        <div class="title">Summary</div>
+        <hr/>
+        <p>${cleanSummary}</p>
+      </div>
+
+      <div class="section">
+        <div class="title">Education</div>
+        <hr/>
+        ${form.education
+          ?.map(
+            (e) => `
+          <div style="margin-bottom:15px;">
+            <div class="flex-between" style="font-weight:600;">
+              <span>${safe(e.institute)}</span>
+              <span>${safe(e.startYear)} - ${safe(e.endYear)}</span>
+            </div>
+            <div style="display:flex; gap:10px; margin-top:4px;">
+              <span>${safe(e.eduType)}</span>
+              <span>${safe(e.department)}</span>
+              <span>${safe(e.score)}</span>
+            </div>
+          </div>`
+          )
+          .join("")}
+      </div>
+
+      <div class="section">
+        <div class="title">Experience</div>
+        <hr/>
+        ${form.experience
+          ?.map(
+            (exp) => `
+        <div style="margin-bottom:12px;">
+          <div class="flex-between" style="font-weight:600;">
+            <span>${safe(exp.role)}</span>
+            <span>${safe(exp.duration)}</span>
           </div>
-        </body>
-      </html>
+          <div>${safe(exp.company)}</div>
+          ${exp.activities ? `<p>${safe(exp.activities)}</p>` : ""}
+        </div>`
+          )
+          .join("")}
+      </div>
+
+      <div class="section">
+        <div class="title">Projects</div>
+        <hr/>
+        ${form.projects
+          ?.map(
+            (p) => `
+        <div style="margin-bottom:14px;">
+          <div class="flex-between" style="font-weight:600;">
+            <span>${safe(p.name)}</span>
+            ${
+              p.link
+                ? `<a href="${p.link.startsWith("http") ? p.link : "https://" + p.link}">
+                    ${p.link}
+                   </a>`
+                : ""
+            }
+          </div>
+          <p>${safe(p.description)}</p>
+
+          ${
+            p.keyPoints?.length
+              ? `<ul>${p.keyPoints
+                  .filter(Boolean)
+                  .map((kp) => `<li>${kp}</li>`)
+                  .join("")}</ul>`
+              : ""
+          }
+
+          <p><strong>Tech Used:</strong> ${safe(p.technologies)}</p>
+        </div>`
+          )
+          .join("")}
+      </div>
+
+      <div class="section">
+        <div class="title">Certificates</div>
+        <hr/>
+        ${form.certificates
+          ?.map(
+            (c) => `
+        <div style="margin-bottom:10px;">
+          <strong>${safe(c.title)}</strong>
+          <p>${safe(c.issuedBy)}</p>
+          ${c.credential ? `<p>${safe(c.credential)}</p>` : ""}
+        </div>`
+          )
+          .join("")}
+      </div>
+
+    </body>
+    </html>
     `;
 
-    // 🟢 GUARANTEED WORKING PUPPETEER CONFIG
+    // ----------- FIX FOR WINDOWS + RENDER + LOCAL -----------
     const browser = await puppeteer.launch({
-      headless: "new",
-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox']
     });
 
     const page = await browser.newPage();
-
-    await page.setContent(html, {
-      waitUntil: "domcontentloaded",
-    });
-
+    await page.setContent(html, { waitUntil: "domcontentloaded" });
     await page.emulateMediaType("screen");
 
-    const pdfBuffer = await page.pdf({
-      format: "A4",
-      printBackground: true,
-    });
-
+    const pdfBuffer = await page.pdf({ format: "A4", printBackground: true });
     await browser.close();
 
-    // 🟢 VERY IMPORTANT — SEND RAW BINARY (NOT send(), NOT json())
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename="${safe(form.name) || "resume"}.pdf"`
-    );
+    res.set({
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `attachment; filename="${form.name || "resume"}.pdf"`,
+    });
 
-    return res.end(pdfBuffer);
+    return res.send(pdfBuffer);
 
   } catch (err) {
-    console.error("📌 PDF EXPORT ERROR:", err);
-    return res.status(500).json({ error: "PDF failed", message: err.message });
+    console.error("❌ PDF EXPORT ERROR:", err);
+    return res.status(500).json({
+      error: "PDF export failed",
+      details: err.message,
+    });
   }
 });
+
 // ======================
 // 🔹 Default Route
 // ======================
