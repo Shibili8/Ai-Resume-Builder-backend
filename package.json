@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "start": "node server.js",
-    "dev": "nodemon server.js"
+    "dev": "nodemon server.js",
     "build": "bash render-build.sh && npm install && node server.js"
   },
   "dependencies": {
