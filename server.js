@@ -69,30 +69,23 @@ async function generateWithRetry(prompt, retries = 3) {
   }
 }
 
-// ---------- PUPPETEER EXECUTABLE FIX (LOCAL + VERCEL + RENDER + WINDOWS) ----------
-const getPuppeteerOptions = async () => {
-  const isLocal = process.platform === "win32" || process.platform === "darwin";
-
-  if (isLocal) {
-    // Local machine → use full Puppeteer (NOT puppeteer-core)
-    return {
-      headless: true,
-      executablePath: puppeteer.executablePath(), 
-      args: ["--no-sandbox", "--disable-setuid-sandbox"]
-    };
-  } else {
-    // Serverless (Render / Vercel / Railway)
-    return {
-      headless: chromium.headless,
+async function getBrowser() {
+  if (process.env.RENDER) {
+    return await puppeteer.launch({
+      args: chromium.args,
+      defaultViewport: chromium.defaultViewport,
       executablePath: await chromium.executablePath(),
-      args: [
-        ...chromium.args,
-        "--no-sandbox",
-        "--disable-setuid-sandbox",
-      ]
-    };
+      headless: chromium.headless,
+    });
   }
-};
+
+  // Local Windows/Mac/Linux (for development)
+  const fullPuppeteer = (await import("puppeteer")).default;
+  return await fullPuppeteer.launch({
+    headless: true,
+    args: ["--no-sandbox", "--disable-setuid-sandbox"],
+  });
+}
 
 
 // ======================
@@ -355,48 +348,29 @@ app.post("/pdf/export", async (req, res) => {
     </html>
     `;
 
-    // ----------- FIX FOR WINDOWS + RENDER + LOCAL -----------
-    const isLocal = process.platform === "win32" || process.platform === "darwin";
+    const browser = await getBrowser();
+    const page = await browser.newPage();
 
-    let browser;
-    if (isLocal) {
-      // LOCAL = FULL PUPPETEER
-      const fullPuppeteer = (await import("puppeteer")).default;
-      browser = await fullPuppeteer.launch({
-        headless: true,
-        args: ["--no-sandbox"],
-      });
-    } else {
-      // SERVERLESS = CHROMIUM + puppeteer-core
-      browser = await puppeteer.launch({
-        args: chromium.args,
-        executablePath: await chromium.executablePath(),
-        headless: chromium.headless,
-      });
-    }
-    // *****************************************
+    await page.setContent(html, { waitUntil: "networkidle0" });
 
-  const page = await browser.newPage();
-  await page.setContent(html, { waitUntil: "networkidle0" });
-  const pdfBuffer = await page.pdf({
+    const pdf = await page.pdf({
       format: "A4",
       printBackground: true,
-  });
+    });
 
     await browser.close();
 
-    // ************* CRITICAL HEADERS *************
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader(
       "Content-Disposition",
       `attachment; filename="${form.name || "resume"}.pdf"`
     );
-    // ********************************************
 
-    return res.send(pdfBuffer);
-  } catch (err) {
-    console.error("❌ PDF EXPORT ERROR:", err);
-    return res.status(500).json({ error: "PDF error", details: err.message });
+    return res.send(pdf);
+
+  } catch (error) {
+    console.error("❌ PDF EXPORT ERROR:", error);
+    res.status(500).json({ error: "PDF generation failed", details: error.message });
   }
 });
 
