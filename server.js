@@ -5,7 +5,7 @@ import { MongoClient } from "mongodb";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import chromium from "@sparticuz/chromium";
-import puppeteer from "puppeteer";
+import puppeteer from "puppeteer-core";
 import fs from "fs";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
@@ -69,39 +69,30 @@ async function generateWithRetry(prompt, retries = 3) {
   }
 }
 
-// ---------- UNIVERSAL PUPPETEER LAUNCHER (Fix for Windows + Render) ----------
+// ---------- PUPPETEER EXECUTABLE FIX (LOCAL + VERCEL + RENDER + WINDOWS) ----------
 const getPuppeteerOptions = async () => {
-  const isLocal =
-    process.platform === "win32" ||
-    process.platform === "darwin" ||
-    process.env.LOCAL_PDF === "true";
+  const isLocal = process.platform === "win32" || process.platform === "darwin";
 
   if (isLocal) {
-    console.log("📌 Running PDF generation in LOCAL mode");
-
-    const fullPuppeteer = await import("puppeteer");
-
+    // Local machine → use full Puppeteer (NOT puppeteer-core)
     return {
       headless: true,
-      executablePath: fullPuppeteer.executablePath(),
-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
-      product: "chrome",
+      executablePath: puppeteer.executablePath(), 
+      args: ["--no-sandbox", "--disable-setuid-sandbox"]
+    };
+  } else {
+    // Serverless (Render / Vercel / Railway)
+    return {
+      headless: chromium.headless,
+      executablePath: await chromium.executablePath(),
+      args: [
+        ...chromium.args,
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+      ]
     };
   }
-
-  console.log("📌 Running PDF generation in SERVERLESS mode");
-
-  return {
-    headless: chromium.headless,
-    executablePath: await chromium.executablePath(),
-    args: [
-      ...chromium.args,
-      "--no-sandbox",
-      "--disable-setuid-sandbox",
-    ],
-  };
 };
-
 
 
 // ======================
@@ -233,14 +224,14 @@ app.get("/portfolio", authMiddleware, async (req, res) => {
 // ======================
 app.post("/pdf/export", async (req, res) => {
   try {
-    console.log("📥 PDF Export request received");
+    console.log("📥 PDF export request received");
 
     const { form, gensummary } = req.body;
-    if (!form) return res.status(400).json({ error: "Form data is required" });
+    if (!form) return res.status(400).json({ error: "Form data missing" });
 
     const safe = (v) => (v ? v : "");
-    const cleanSummary = (gensummary || "").replace(/\*/g, "");
-    const html = `
+    const summary = (gensummary || "").replace(/\*/g, "");
+     const html = `
     <html>
     <head>
       <meta charset="utf-8" />
@@ -364,35 +355,48 @@ app.post("/pdf/export", async (req, res) => {
     </html>
     `;
 
-     const puppeteerOptions = await getPuppeteerOptions();
-    const fullPuppeteer = puppeteerOptions.executablePath
-      ? puppeteer
-      : await import("puppeteer");
+    // ----------- FIX FOR WINDOWS + RENDER + LOCAL -----------
+    const isLocal = process.platform === "win32" || process.platform === "darwin";
 
-    const browser = await fullPuppeteer.launch(puppeteerOptions);
-    const page = await browser.newPage();
+    let browser;
+    if (isLocal) {
+      // LOCAL = FULL PUPPETEER
+      const fullPuppeteer = (await import("puppeteer")).default;
+      browser = await fullPuppeteer.launch({
+        headless: true,
+        args: ["--no-sandbox"],
+      });
+    } else {
+      // SERVERLESS = CHROMIUM + puppeteer-core
+      browser = await puppeteer.launch({
+        args: chromium.args,
+        executablePath: await chromium.executablePath(),
+        headless: chromium.headless,
+      });
+    }
+    // *****************************************
 
-    await page.setContent(html, { waitUntil: "networkidle0" });
-    await page.emulateMediaType("screen");
-
-    const pdfBuffer = await page.pdf({
+  const page = await browser.newPage();
+  await page.setContent(html, { waitUntil: "networkidle0" });
+  const pdfBuffer = await page.pdf({
       format: "A4",
       printBackground: true,
-      preferCSSPageSize: true,
-    });
+  });
 
     await browser.close();
 
-    res.set({
-      "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="${form.name || "resume"}.pdf"`,
-    });
+    // ************* CRITICAL HEADERS *************
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${form.name || "resume"}.pdf"`
+    );
+    // ********************************************
 
-    res.send(pdfBuffer);
-
+    return res.send(pdfBuffer);
   } catch (err) {
     console.error("❌ PDF EXPORT ERROR:", err);
-    res.status(500).json({ error: "PDF export failed", details: err.message });
+    return res.status(500).json({ error: "PDF error", details: err.message });
   }
 });
 
