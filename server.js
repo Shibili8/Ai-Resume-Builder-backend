@@ -220,147 +220,166 @@ app.post("/pdf/export", async (req, res) => {
     console.log("📥 PDF export request received");
 
     const { form, gensummary } = req.body;
-    if (!form) return res.status(400).json({ error: "Form data missing" });
+
+    if (!form) {
+      return res.status(400).json({ error: "Form data missing" });
+    }
 
     const safe = (v) => (v ? v : "");
 
-    // FIX: clean summary variable
     const cleanSummary = (gensummary || "").replace(/\*/g, "");
 
-    // Generate HTML safely
+    // Generate HTML
     const html = `
-    <html>
-    <head>
-      <meta charset="utf-8" />
-      <style>
-        body { font-family: Arial, sans-serif; padding: 40px; background: white; }
-        h1,h2,h3 { margin: 0; }
-        .section { margin-top: 25px; }
-        .title { font-size: 20px; font-weight: bold; margin-bottom: 5px; }
-        hr { border: 1.5px solid #000; margin-bottom: 10px; }
-        .flex-between { display: flex; justify-content: space-between; }
-        ul { margin-top: 5px; }
-      </style>
-    </head>
+      <html>
+      <head>
+        <meta charset="utf-8" />
+        <style>
+          body { font-family: Arial, sans-serif; padding: 40px; background: white; }
+          h1,h2,h3 { margin: 0; }
+          .section { margin-top: 25px; }
+          .title { font-size: 20px; font-weight: bold; margin-bottom: 5px; }
+          hr { border: 1.5px solid #000; margin-bottom: 10px; }
+          .flex-between { display: flex; justify-content: space-between; }
+          ul { margin-top: 5px; }
+        </style>
+      </head>
 
-    <body>
+      <body>
 
-      <div style="text-align:center; margin-bottom:20px;">
-        <h1>${safe(form.name)}</h1>
-        <h3>${safe(form.role)}</h3>
-        <p>
-          ${safe(form.emailId)} | ${safe(form.phoneNo)} |
-          ${safe(form.linkedIn)} | ${safe(form.portfolioLink)}
-        </p>
-      </div>
+        <div style="text-align:center; margin-bottom:20px;">
+          <h1>${safe(form.name)}</h1>
+          <h3>${safe(form.role)}</h3>
+          <p>
+            ${safe(form.emailId)} | ${safe(form.phoneNo)} |
+            ${safe(form.linkedIn)} | ${safe(form.portfolioLink)}
+          </p>
+        </div>
 
-      <div class="section">
-        <div class="title">Summary</div>
-        <hr/>
-        <p>${cleanSummary}</p>
-      </div>
+        <div class="section">
+          <div class="title">Summary</div>
+          <hr/>
+          <p>${cleanSummary}</p>
+        </div>
 
-      <div class="section">
-        <div class="title">Education</div>
-        <hr/>
-        ${form.education
-          ?.map(
-            (e) => `
-          <div style="margin-bottom:15px;">
+        <div class="section">
+          <div class="title">Education</div>
+          <hr/>
+          ${
+            form.education
+              ?.map(
+                (e) => `
+            <div style="margin-bottom:15px;">
+              <div class="flex-between" style="font-weight:600;">
+                <span>${safe(e.institute)}</span>
+                <span>${safe(e.startYear)} - ${safe(e.endYear)}</span>
+              </div>
+              <div style="display:flex; gap:10px; margin-top:4px;">
+                <span>${safe(e.eduType)}</span>
+                <span>${safe(e.department)}</span>
+                <span>${safe(e.score)}</span>
+              </div>
+            </div>`
+              )
+              .join("")
+          }
+        </div>
+
+        <div class="section">
+          <div class="title">Experience</div>
+          <hr/>
+          ${
+            form.experience
+              ?.map(
+                (exp) => `
+          <div style="margin-bottom:12px;">
             <div class="flex-between" style="font-weight:600;">
-              <span>${safe(e.institute)}</span>
-              <span>${safe(e.startYear)} - ${safe(e.endYear)}</span>
+              <span>${safe(exp.role)}</span>
+              <span>${safe(exp.duration)}</span>
             </div>
-            <div style="display:flex; gap:10px; margin-top:4px;">
-              <span>${safe(e.eduType)}</span>
-              <span>${safe(e.department)}</span>
-              <span>${safe(e.score)}</span>
-            </div>
+            <div>${safe(exp.company)}</div>
+            ${exp.activities ? `<p>${safe(exp.activities)}</p>` : ""}
           </div>`
-          )
-          .join("")}
-      </div>
+              )
+              .join("")
+          }
+        </div>
 
-      <div class="section">
-        <div class="title">Experience</div>
-        <hr/>
-        ${form.experience
-          ?.map(
-            (exp) => `
-        <div style="margin-bottom:12px;">
-          <div class="flex-between" style="font-weight:600;">
-            <span>${safe(exp.role)}</span>
-            <span>${safe(exp.duration)}</span>
-          </div>
-          <div>${safe(exp.company)}</div>
-          ${exp.activities ? `<p>${safe(exp.activities)}</p>` : ""}
-        </div>`
-          )
-          .join("")}
-      </div>
+        <div class="section">
+          <div class="title">Projects</div>
+          <hr/>
+          ${
+            form.projects
+              ?.map(
+                (p) => `
+          <div style="margin-bottom:14px;">
+            <div class="flex-between" style="font-weight:600;">
+              <span>${safe(p.name)}</span>
+              ${
+                p.link
+                  ? `<a href="${p.link.startsWith("http") ? p.link : "https://" + p.link}">
+                      ${p.link}
+                    </a>`
+                  : ""
+              }
+            </div>
+            <p>${safe(p.description)}</p>
 
-      <div class="section">
-        <div class="title">Projects</div>
-        <hr/>
-        ${form.projects
-          ?.map(
-            (p) => `
-        <div style="margin-bottom:14px;">
-          <div class="flex-between" style="font-weight:600;">
-            <span>${safe(p.name)}</span>
             ${
-              p.link
-                ? `<a href="${p.link.startsWith("http") ? p.link : "https://" + p.link}">
-                    ${p.link}
-                   </a>`
+              p.keyPoints?.length
+                ? `<ul>${p.keyPoints
+                    .filter(Boolean)
+                    .map((kp) => `<li>${kp}</li>`)
+                    .join("")}</ul>`
                 : ""
             }
-          </div>
-          <p>${safe(p.description)}</p>
 
-          ${
-            p.keyPoints?.length
-              ? `<ul>${p.keyPoints
-                  .filter(Boolean)
-                  .map((kp) => `<li>${kp}</li>`)
-                  .join("")}</ul>`
-              : ""
+            <p><strong>Tech Used:</strong> ${safe(p.technologies)}</p>
+          </div>`
+              )
+              .join("")
           }
+        </div>
 
-          <p><strong>Tech Used:</strong> ${safe(p.technologies)}</p>
-        </div>`
-          )
-          .join("")}
-      </div>
+        <div class="section">
+          <div class="title">Certificates</div>
+          <hr/>
+          ${
+            form.certificates
+              ?.map(
+                (c) => `
+          <div style="margin-bottom:10px;">
+            <strong>${safe(c.title)}</strong>
+            <p>${safe(c.issuedBy)}</p>
+            ${c.credential ? `<p>${safe(c.credential)}</p>` : ""}
+          </div>`
+              )
+              .join("")
+          }
+        </div>
 
-      <div class="section">
-        <div class="title">Certificates</div>
-        <hr/>
-        ${form.certificates
-          ?.map(
-            (c) => `
-        <div style="margin-bottom:10px;">
-          <strong>${safe(c.title)}</strong>
-          <p>${safe(c.issuedBy)}</p>
-          ${c.credential ? `<p>${safe(c.credential)}</p>` : ""}
-        </div>`
-          )
-          .join("")}
-      </div>
-
-    </body>
-    </html>
+      </body>
+      </html>
     `;
 
-    // FIX: Launch chromium properly for Render
-    const browser = await puppeteer.launch({
-      args: chromium.args,
-      executablePath: await chromium.executablePath(),
-      headless: chromium.headless,
-      defaultViewport: chromium.defaultViewport,
-    });
+    // =====================
+    // 🧩 BROWSER FIX (RENDER + LOCAL)
+    // =====================
+    const browser =
+      process.env.RENDER === "true"
+        ? await puppeteer.launch({
+            args: chromium.args,
+            executablePath: await chromium.executablePath(),
+            defaultViewport: chromium.defaultViewport,
+            headless: chromium.headless,
+          })
+        : await (await import("puppeteer")).default.launch({
+            headless: true,
+            args: ["--no-sandbox", "--disable-setuid-sandbox"],
+          });
 
     const page = await browser.newPage();
+
     await page.setContent(html, { waitUntil: "networkidle0" });
 
     const pdfBuffer = await page.pdf({
@@ -371,18 +390,27 @@ app.post("/pdf/export", async (req, res) => {
 
     await browser.close();
 
-    // FIX: Required headers to prevent PDF corruption
-    res.set({
-      "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="${form.name || "resume"}.pdf"`,
-      "Content-Length": pdfBuffer.length,
-    });
+    if (!pdfBuffer || pdfBuffer.length === 0) {
+      return res.status(500).json({ error: "Generated PDF is empty" });
+    }
+
+    // =====================
+    // 🧩 FIXED PDF HEADERS
+    // =====================
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${(form.name || "resume").replace(/[^a-zA-Z]/g, "")}.pdf"`
+    );
+    res.setHeader("Content-Length", pdfBuffer.length);
 
     return res.send(pdfBuffer);
-
   } catch (error) {
     console.error("❌ PDF EXPORT ERROR:", error);
-    res.status(500).json({ error: "PDF generation failed", details: error.message });
+    return res.status(500).json({
+      error: "PDF generation failed",
+      details: error.message,
+    });
   }
 });
 
