@@ -215,6 +215,9 @@ app.get("/portfolio", authMiddleware, async (req, res) => {
 // ======================
 // 🔹 PDF Resume Export
 // ======================
+import chromium from "@sparticuz/chromium";
+import puppeteer from "puppeteer-core";
+
 app.post("/pdf/export", async (req, res) => {
   try {
     console.log("📥 PDF export request received");
@@ -223,8 +226,12 @@ app.post("/pdf/export", async (req, res) => {
     if (!form) return res.status(400).json({ error: "Form data missing" });
 
     const safe = (v) => (v ? v : "");
-    const summary = (gensummary || "").replace(/\*/g, "");
-     const html = `
+
+    // FIX: clean summary variable
+    const cleanSummary = (gensummary || "").replace(/\*/g, "");
+
+    // Generate HTML safely
+    const html = `
     <html>
     <head>
       <meta charset="utf-8" />
@@ -348,31 +355,40 @@ app.post("/pdf/export", async (req, res) => {
     </html>
     `;
 
-    const browser = await getBrowser();
-    const page = await browser.newPage();
+    // FIX: Launch chromium properly for Render
+    const browser = await puppeteer.launch({
+      args: chromium.args,
+      executablePath: await chromium.executablePath(),
+      headless: chromium.headless,
+      defaultViewport: chromium.defaultViewport,
+    });
 
+    const page = await browser.newPage();
     await page.setContent(html, { waitUntil: "networkidle0" });
 
-    const pdf = await page.pdf({
+    const pdfBuffer = await page.pdf({
       format: "A4",
       printBackground: true,
+      preferCSSPageSize: true,
     });
 
     await browser.close();
 
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename="${form.name || "resume"}.pdf"`
-    );
+    // FIX: Required headers to prevent PDF corruption
+    res.set({
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `attachment; filename="${form.name || "resume"}.pdf"`,
+      "Content-Length": pdfBuffer.length,
+    });
 
-    return res.send(pdf);
+    return res.send(pdfBuffer);
 
   } catch (error) {
     console.error("❌ PDF EXPORT ERROR:", error);
     res.status(500).json({ error: "PDF generation failed", details: error.message });
   }
 });
+
 
 // ======================
 // 🔹 Default Route
