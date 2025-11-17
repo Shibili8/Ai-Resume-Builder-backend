@@ -215,7 +215,7 @@ app.get("/portfolio", authMiddleware, async (req, res) => {
 // ======================
 // 🔹 PDF Resume Export
 // ======================
-app.post("/pdf/export-base64", async (req, res) => {
+app.post("/pdf/export", async (req, res) => {
   try {
     console.log("📥 PDF export (base64) request received");
 
