@@ -215,18 +215,14 @@ app.get("/portfolio", authMiddleware, async (req, res) => {
 // ======================
 // 🔹 PDF Resume Export
 // ======================
-app.post("/pdf/export", async (req, res) => {
+app.post("/pdf/export-base64", async (req, res) => {
   try {
-    console.log("📥 PDF export request received");
+    console.log("📥 PDF export (base64) request received");
 
     const { form, gensummary } = req.body;
-
-    if (!form) {
-      return res.status(400).json({ error: "Form data missing" });
-    }
+    if (!form) return res.status(400).json({ error: "Form data missing" });
 
     const safe = (v) => (v ? v : "");
-
     const cleanSummary = (gensummary || "").replace(/\*/g, "");
 
     // Generate HTML
@@ -379,7 +375,6 @@ app.post("/pdf/export", async (req, res) => {
           });
 
     const page = await browser.newPage();
-
     await page.setContent(html, { waitUntil: "networkidle0" });
 
     const pdfBuffer = await page.pdf({
@@ -391,26 +386,20 @@ app.post("/pdf/export", async (req, res) => {
     await browser.close();
 
     if (!pdfBuffer || pdfBuffer.length === 0) {
+      console.error("❌ Generated PDF buffer empty");
       return res.status(500).json({ error: "Generated PDF is empty" });
     }
 
-    // =====================
-    // 🧩 FIXED PDF HEADERS
-    // =====================
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename="${(form.name || "resume").replace(/[^a-zA-Z]/g, "")}.pdf"`
-    );
-    res.setHeader("Content-Length", pdfBuffer.length);
+    // Diagnostics logging (size + first bytes)
+    console.log(`✅ PDF generated — bytes: ${pdfBuffer.length}`);
+    console.log("PDF first 8 bytes (hex):", pdfBuffer.slice(0, 8).toString("hex"));
 
-    return res.send(pdfBuffer);
-  } catch (error) {
-    console.error("❌ PDF EXPORT ERROR:", error);
-    return res.status(500).json({
-      error: "PDF generation failed",
-      details: error.message,
-    });
+    // send as base64 inside JSON to avoid binary transport issues
+    const b64 = pdfBuffer.toString("base64");
+    return res.json({ ok: true, filename: `${(form.name || "resume").replace(/[^a-zA-Z0-9-_]/g, "_")}.pdf`, pdfBase64: b64, size: pdfBuffer.length });
+  } catch (err) {
+    console.error("❌ /pdf/export-base64 ERROR:", err);
+    return res.status(500).json({ error: "PDF generation failed", details: err.message });
   }
 });
 
