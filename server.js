@@ -215,9 +215,6 @@ app.get("/portfolio", authMiddleware, async (req, res) => {
 // ======================
 // 🔹 PDF Resume Export
 // ======================
-import chromium from "@sparticuz/chromium";
-import puppeteer from "puppeteer-core";
-
 app.post("/pdf/export", async (req, res) => {
   try {
     console.log("📥 PDF export request received");
