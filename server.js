@@ -205,7 +205,7 @@ app.post("/portfolio",authMiddleware, async (req, res) => {
     const data = {
       ...req.body,
       education: normalizedEducation,
-      userId: req.user.id,
+      userId: req.user.id || null,
       createdAt: new Date(),
     };
 
