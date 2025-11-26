@@ -200,24 +200,27 @@ app.post("/portfolio", async (req, res) => {
   try {
     const portfolios = db.collection("portfolios");
 
+    // Normalize education array BEFORE saving
     const normalizedEducation = normalizeEducationArray(req.body.education);
 
     const data = {
       ...req.body,
       education: normalizedEducation,
-      userId: req.user.id,
+      userId: req.user?.id || null,   // prevent crash if no auth
       createdAt: new Date(),
     };
 
     const result = await portfolios.insertOne(data);
 
-    res.json({
+    return res.json({
       success: true,
       id: result.insertedId,
       message: "Portfolio saved successfully",
     });
+
   } catch (err) {
-    res.status(500).json({ error: "Failed to save portfolio" });
+    console.error("PORTFOLIO SAVE ERROR:", err);
+    return res.status(500).json({ error: "Failed to save portfolio" });
   }
 });
 
