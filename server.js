@@ -196,7 +196,7 @@ app.post("/ai/generate", async (req, res) => {
 // ======================
 // 🔹 Portfolio CRUD
 // ======================
-app.post("/portfolio", async (req, res) => {
+app.post("/portfolio",authMiddleware, async (req, res) => {
   try {
     const portfolios = db.collection("portfolios");
 
@@ -224,7 +224,7 @@ app.post("/portfolio", async (req, res) => {
 
 
 
-app.get("/portfolio", authMiddleware, async (req, res) => {
+app.get("/portfolio", async (req, res) => {
   try {
     const portfolios = db.collection("portfolios");
     const data = await portfolios.find({ userId: req.user.id }).toArray();
