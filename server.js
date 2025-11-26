@@ -196,7 +196,7 @@ app.post("/ai/generate", async (req, res) => {
 // ======================
 // 🔹 Portfolio CRUD
 // ======================
-app.post("/portfolio", async (req, res) => {
+app.post("/portfolio", authMiddleware, async (req, res) => {
   try {
     const portfolios = db.collection("portfolios");
 
