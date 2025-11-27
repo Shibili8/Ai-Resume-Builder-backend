@@ -312,7 +312,7 @@ app.post("/pdf/export", async (req, res) => {
     <p style="margin-top:10px; font-size:14px;">
       ${safe(form.emailId)}
       ${form.phoneNo ? " | " + safe(form.phoneNo) : ""}
-      ${form.linkedIn ? " | " + safe(form.linkedIn) : ""}
+      ${form.linkedIn ? (" | " + <a href={form.linkedIn}> form.linkedIn</a>)  :""}
       ${form.portfolioLink ? " | " + safe(form.portfolioLink) : ""}
     </p>
   </div>
