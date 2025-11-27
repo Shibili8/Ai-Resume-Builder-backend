@@ -338,7 +338,7 @@ app.post("/pdf/export", async (req, res) => {
           <span style="color:#2B2B2B;">${safe(e.institute)}</span>
           <span>${safe(e.startYear)} - ${safe(e.endYear)}</span>
         </div>
-        <div style="display:flex; gap:10px; margin-top:4px;">
+        <div style="display:flex; gap:4px; margin-top:4px;">
           <span>${safe(e.eduType)}</span>
           <span>${safe(e.department)}.</span>
           <span>${safe(e.scoreType)}:</span>
