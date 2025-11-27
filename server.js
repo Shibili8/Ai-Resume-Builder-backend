@@ -492,11 +492,11 @@ app.post("/pdf/export", async (req, res) => {
           .map(
             (c) => `
           <div class="mb-10">
-            <div style="display:flex; align-items:center; justify-content:space-between;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom: 5px;">
               <strong>${safe(c.title)}</strong>
               <span>${safe(c.issuedOn)}</span>
             </div>
-            <p>Issued By: ${safe(c.issuedBy)}</p>
+            <p style="margin-bottom: 5px;">Issued By: ${safe(c.issuedBy)}</p>
             ${
               c.credential && c.credential.trim().length
                 ? `<p>Credential: ${safe(c.credential)}</p>`
