@@ -520,7 +520,7 @@ app.post("/pdf/export", async (req, res) => {
 
     if (!hasLanguages && !hasNationality && !hasAvailability) return "";
 
-    // build languages display
+    // ---------------------- LANGUAGES (Updated Layout) ----------------------
     let languagesBlock = "";
     if (hasLanguages) {
       const items = (form.languages || [])
@@ -530,17 +530,37 @@ app.post("/pdf/export", async (req, res) => {
           if (lang.read) levels.push("Read");
           if (lang.write) levels.push("Write");
           if (lang.speak) levels.push("Speak");
-          const levelsStr = levels.length ? " (" + levels.join(", ") + ")" : "";
-          return safe(lang.language) + levelsStr;
+
+          const levelsStr = levels.length ? ` (${levels.join(", ")})` : ` (Not specified)`;
+
+          return `${safe(lang.language)}${levelsStr}`;
         });
 
       languagesBlock = `
-        <div style="margin-bottom:10px; display:flex; align-items:center;">
-          <strong style="font-size:14px;">Languages:</strong>
-          <span style="margin-left:4px;">${items.join(", ")}</span>
+        <div style="
+          margin-bottom: 10px;
+          display: flex;
+          align-items: flex-start;
+          font-size: 14px;
+          line-height: 20px;
+        ">
+          <strong style="white-space: nowrap; margin-right: 6px;">Languages:</strong>
+
+          <div style="
+            display: inline-flex;
+            flex-wrap: wrap;
+            gap: 4px 6px;
+          ">
+            ${items
+              .map((item, idx) => {
+                return `<span>${item}${idx !== items.length - 1 ? "," : ""}</span>`;
+              })
+              .join("")}
+          </div>
         </div>
       `;
     }
+
 
     // nationality
     let nationalityBlock = "";
