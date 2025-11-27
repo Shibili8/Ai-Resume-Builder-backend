@@ -247,77 +247,102 @@ app.post("/pdf/export", async (req, res) => {
       return res.status(400).json({ error: "Form data missing" });
     }
 
-    const safe = (v) => (v ? v : "");
+    const safe = (v) => (v ? String(v) : "");
     const cleanSummary = (gensummary || "").replace(/\*/g, "");
 
     // -------------------------------
-    // 🔹 Generate HTML
+    // 🔹 Generate HTML (PreviewPage style)
     // -------------------------------
     const html = `
 <html>
 <head>
   <meta charset="utf-8" />
   <style>
-    body { font-family: Arial, sans-serif; padding: 40px; background: white; word-wrap: break-word;
-  overflow-wrap: break-word; }
-    h1,h2,h3 { margin: 0; }
-    .section { margin-top: 25px; }
-    .title { font-size: 20px; font-weight: bold; margin-bottom: 5px; }
-    hr { border: 1.5px solid #000; margin-bottom: 10px; }
-    .flex-between { display: flex; justify-content: space-between; }
-    ul { margin-top: 5px; }
-    .section p,
-.section div,
-.section span,
-.section li {
-  word-break: break-word;
-  white-space: normal;
-}
-
-.activities-text {
-  text-align: justify;
-  line-height: 1.6;
-  margin-top: 5px;
-  display: block;
-  width: 100%;
-}
+    body {
+      font-family: Arial, sans-serif;
+      padding: 40px;
+      background: white;
+    }
+    h1, h2, h3 {
+      margin: 0;
+    }
+    h1 {
+      font-weight: 600;
+      font-size: 18px;
+    }
+    h2 {
+      font-weight: 600;
+      color: #111111;
+      font-size: 16px;
+      margin-top: 18px;
+    }
+    p, span, li, div {
+      font-size: 12px;
+    }
+    hr {
+      border: 1px solid #000;
+      margin: 4px 0 10px;
+    }
+    .section {
+      margin-top: 10px;
+      margin-bottom: 10px;
+    }
+    .flex-between {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    .mb-10 { margin-bottom: 10px; }
+    .mb-12 { margin-bottom: 12px; }
+    .mb-14 { margin-bottom: 14px; }
+    .mb-20 { margin-bottom: 20px; }
+    ul {
+      margin-top: 5px;
+      padding-left: 18px;
+    }
   </style>
 </head>
 
 <body>
 
+  <!-- ===================== HEADER ===================== -->
   <div style="text-align:center; margin-bottom:20px;">
     <h1>${safe(form.name)}</h1>
-    <h3>${safe(form.role)}</h3>
-    <p>
-      ${safe(form.emailId)}  ${safe("| "+form.phoneNo)} 
-      ${safe("| "+form.linkedIn)} ${safe("| "+form.portfolioLink)}
+    <h3 style="margin:0; font-weight:500; font-size:14px;">${safe(form.role)}</h3>
+    <p style="margin-top:10px; font-size:14px;">
+      ${safe(form.emailId)}
+      ${form.phoneNo ? " | " + safe(form.phoneNo) : ""}
+      ${form.linkedIn ? " | " + safe(form.linkedIn) : ""}
+      ${form.portfolioLink ? " | " + safe(form.portfolioLink) : ""}
     </p>
   </div>
 
+  <!-- ===================== SUMMARY ===================== -->
   <div class="section">
-    <div class="title">Summary</div>
+    <h2>SUMMARY</h2>
     <hr/>
     <p style="text-align:justify;">${cleanSummary}</p>
   </div>
 
+  <!-- ===================== EDUCATION ===================== -->
   <div class="section">
-    <div class="title">Education</div>
+    <h2>EDUCATION</h2>
     <hr/>
     ${
-      form.education?.length
+      (form.education && form.education.length)
         ? form.education
             .map(
               (e) => `
-      <div style="margin-bottom:15px;">
+      <div class="mb-12">
         <div class="flex-between" style="font-weight:600;">
-          <span>${safe(e.institute)}</span>
+          <span style="color:#2B2B2B;">${safe(e.institute)}</span>
           <span>${safe(e.startYear)} - ${safe(e.endYear)}</span>
         </div>
         <div style="display:flex; gap:10px; margin-top:4px;">
           <span>${safe(e.eduType)}</span>
-          <span> in ${safe(e.department)}</span>
-          <span>${safe(e.score) ? `| ${safe(e.score)} (${safe(e.scoreType)})` : ""}</span>
+          <span>${safe(e.department)}.</span>
+          <span>${safe(e.scoreType)}:</span>
+          <span>${safe(e.score)}</span>
         </div>
       </div>`
             )
@@ -326,187 +351,245 @@ app.post("/pdf/export", async (req, res) => {
     }
   </div>
 
+  <!-- ===================== SKILLS ===================== -->
   ${(() => {
-  // Normalize skills → If array, use array. If string, split by commas.
-  let skills = [];
+    let skills = [];
+    if (Array.isArray(form.skills)) {
+      skills = form.skills.filter((s) => s && s.toString().trim());
+    } else if (typeof form.skills === "string") {
+      skills = form.skills
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+    }
+    if (!skills.length) return "";
 
-  if (Array.isArray(form.skills)) {
-    skills = form.skills.filter(s => s?.trim());
-  } else if (typeof form.skills === "string") {
-    skills = form.skills
-      .split(",")
-      .map(s => s.trim())
-      .filter(Boolean);
-  }
-
-  // No valid skills → hide entire section
-  if (skills.length === 0) return "";
-
-  return `
-    <div class="section">
-      <div class="title">Skills</div>
-      <hr/>
-      <ul style="display:flex; align-items:center; padding-left:0px; list-style-type: none;">
-        ${skills.map(s => `<li >${safe(s)}</li>`).join(", "+"  ")}
-      </ul>
-    </div>
-  `;
-})()}
-
-
-  ${(() => {
-  const validExp = (form.experience || []).filter(exp =>
-    (exp.role && exp.role.trim()) ||
-    (exp.company && exp.company.trim()) ||
-    (exp.duration && exp.duration.trim()) ||
-    (exp.activities && exp.activities.trim())
-  );
-
-  if (validExp.length === 0) return "";
-
-  return `
-    <div class="section">
-      <div class="title">Experience</div>
-      <hr/>
-
-      ${validExp
-        .map(
-          (exp) => `
-        <div style="
-          margin-bottom:18px; 
-          line-height:1.6; 
-          display:block; 
-          width:100%;
-          word-break: break-word;
-        ">
-
-          <div class="flex-between" style="
-            font-weight:600; 
-            margin-bottom:4px;
-            width:100%;
-            word-break: break-word;
-          ">
-            <span>${safe(exp.role || "")}</span>
-            <span>${safe(exp.duration || "")}</span>
-          </div>
-
-          <div style="margin-bottom:6px; word-break: break-word;">
-            ${safe(exp.company || "")}
-          </div>
-
-          ${
-            exp.activities && exp.activities.trim().length > 0
-              ? `<p class="activities-text">
-                  ${safe(exp.activities)}
-                </p>`
-              : ""
-          }
+    return `
+      <div class="section">
+        <h2>SKILLS</h2>
+        <hr/>
+        <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:20px;">
+          <span>${skills.join(", ")}</span>
         </div>
-        `
-        )
-        .join("")}
-    </div>
-  `;
-})()}
+      </div>
+    `;
+  })()}
 
+  <!-- ===================== EXPERIENCE ===================== -->
   ${(() => {
-  // Filter out empty projects (all fields blank)
-  const validProjects = (form.projects || []).filter(p =>
-    p.name?.trim() ||
-    p.description?.trim() ||
-    p.link?.trim() ||
-    (p.keyPoints && p.keyPoints.some(k => k?.trim())) ||
-    p.technologies?.trim()
-  );
+    const validExp = (form.experience || []).filter((exp) =>
+      (exp.role && exp.role.trim()) ||
+      (exp.company && exp.company.trim()) ||
+      (exp.duration && exp.duration.trim()) ||
+      (exp.activities && exp.activities.trim())
+    );
+    if (!validExp.length) return "";
 
-  // If no valid projects → show nothing
-  if (validProjects.length === 0) return "";
-
-  return `
-  <div class="section">
-    <div class="title">Projects</div>
-    <hr/>
-    ${validProjects
-      .map(
-        (p) => `
-        <div style="margin-bottom:14px;">
-
-          <div class="flex-between" style="font-weight:600;">
-            <span>${safe(p.name || "")}</span>
-
+    return `
+      <div class="section">
+        <h2>EXPERIENCE</h2>
+        <hr/>
+        ${validExp
+          .map(
+            (exp) => `
+          <div class="mb-12">
+            <div class="flex-between" style="font-weight:600;">
+              <span>${safe(exp.role)}</span>
+              <span>${safe(exp.duration)} Year</span>
+            </div>
+            <div>${safe(exp.company)}</div>
             ${
-              p.link
-                ? `<a href="${
-                    p.link ? p.link : "https://" + p.link
-                  }">${safe(p.link)}</a>`
+              exp.activities && exp.activities.trim().length
+                ? `<p style="margin-top:4px; text-align:justify;">${safe(
+                    exp.activities
+                  )}</p>`
                 : ""
             }
-          </div>
+          </div>`
+          )
+          .join("")}
+      </div>
+    `;
+  })()}
 
-          ${p.description ? `<p style="text-align: justify;">${safe(p.description)}</p>` : ""}
-
-          ${
-            p.keyPoints?.length
-              ? `<ul>
-                  ${p.keyPoints
-                    .filter(kp => kp?.trim())
-                    .map(kp => `<li>${safe(kp)}</li>`)
-                    .join("")}
-                </ul>`
-              : ""
-          }
-
-          ${
-            p.technologies.length>0
-              ? `<p><strong>Tech Used:</strong> ${safe(p.technologies)}</p>`
-              : ""
-          }
-
-        </div>
-      `
-      )
-      .join("")}
-  </div>
-  `;
-})()}
-
-
+  <!-- ===================== PROJECTS ===================== -->
   ${(() => {
-  const validCerts = (form.certificates || []).filter(c =>
-    c.title?.trim() ||
-    c.issuedBy?.trim() ||
-    c.issuedOn?.trim() ||
-    c.credential?.trim()
-  );
+    const validProjects = (form.projects || []).filter((p) =>
+      (p.name && p.name.trim()) ||
+      (p.description && p.description.trim()) ||
+      (p.link && p.link.trim()) ||
+      (p.keyPoints && p.keyPoints.some((k) => k && k.trim())) ||
+      (p.technologies && p.technologies.trim())
+    );
+    if (!validProjects.length) return "";
 
-  if (validCerts.length === 0) return "";
-
-  return `
-    <div class="section">
-      <div class="title">Certificates</div>
-      <hr/>
-      ${validCerts.map(c => `
-        <div style="margin-bottom:10px; line-height:1.5;">
-          <strong >${safe(c.title || "")}</strong>
-          <div>${safe(c.issuedBy || "")} <small> | ${safe(c.issuedOn || "")}</small></div>
-          
-          ${
-              c.credential
-                ? `<a href="${
-                    c.credential.startsWith("https://") ? c.credential : "https://" + c.credential
-                  }">${safe(c.credential)}</a>`
+    return `
+      <div class="section">
+        <h2>PROJECTS</h2>
+        <hr/>
+        ${validProjects
+          .map(
+            (p) => `
+          <div class="mb-14">
+            <div class="flex-between" style="font-weight:600;">
+              <span>${safe(p.name)}</span>
+              ${
+                p.link
+                  ? `<a href="${safe(
+                      p.link.startsWith("http")
+                        ? p.link
+                        : "https://" + p.link
+                    )}" style="color:blue;">${safe(p.link)}</a>`
+                  : ""
+              }
+            </div>
+            ${
+              p.description
+                ? `<p style="margin-top:4px; text-align:justify;">${safe(
+                    p.description
+                  )}</p>`
                 : ""
             }
+            ${
+              p.keyPoints && p.keyPoints.filter((kp) => kp && kp.trim()).length
+                ? `<ul>
+                    ${p.keyPoints
+                      .filter((kp) => kp && kp.trim())
+                      .map((kp) => `<li>${safe(kp)}</li>`)
+                      .join("")}
+                   </ul>`
+                : ""
+            }
+            ${
+              p.technologies && p.technologies.trim().length
+                ? `<p><strong style="font-weight:540;">Tech Used:</strong> ${safe(
+                    p.technologies
+                  )}</p>`
+                : ""
+            }
+          </div>`
+          )
+          .join("")}
+      </div>
+    `;
+  })()}
+
+  <!-- ===================== CERTIFICATES ===================== -->
+  ${(() => {
+    const validCerts = (form.certificates || []).filter((c) =>
+      (c.title && c.title.trim()) ||
+      (c.issuedBy && c.issuedBy.trim()) ||
+      (c.issuedOn && c.issuedOn.trim()) ||
+      (c.credential && c.credential.trim())
+    );
+    if (!validCerts.length) return "";
+
+    return `
+      <div class="section">
+        <h2>CERTIFICATES</h2>
+        <hr/>
+        ${validCerts
+          .map(
+            (c) => `
+          <div class="mb-10">
+            <div style="display:flex; align-items:center; justify-content:space-between;">
+              <strong>${safe(c.title)}</strong>
+              <span>${safe(c.issuedOn)}</span>
+            </div>
+            <p>Issued By: ${safe(c.issuedBy)}</p>
+            ${
+              c.credential && c.credential.trim().length
+                ? `<p>Credential: ${safe(c.credential)}</p>`
+                : ""
+            }
+          </div>`
+          )
+          .join("")}
+      </div>
+    `;
+  })()}
+
+  <!-- ===================== ADDITIONAL INFORMATION ===================== -->
+  ${(() => {
+    const hasLanguages =
+      (form.languages || []).some(
+        (l) => l && l.language && l.language.toString().trim()
+      );
+    const hasNationality = !!(form.nationality && form.nationality.trim());
+    const hasAvailability = !!(form.availabilityType && form.availabilityType.trim());
+
+    if (!hasLanguages && !hasNationality && !hasAvailability) return "";
+
+    // build languages display
+    let languagesBlock = "";
+    if (hasLanguages) {
+      const items = (form.languages || [])
+        .filter((l) => l && l.language && l.language.toString().trim())
+        .map((lang) => {
+          const levels = [];
+          if (lang.read) levels.push("Read");
+          if (lang.write) levels.push("Write");
+          if (lang.speak) levels.push("Speak");
+          const levelsStr = levels.length ? " (" + levels.join(", ") + ")" : "";
+          return safe(lang.language) + levelsStr;
+        });
+
+      languagesBlock = `
+        <div style="margin-bottom:10px; display:flex; align-items:center;">
+          <strong style="font-size:14px;">Languages:</strong>
+          <span style="margin-left:4px;">${items.join(", ")}</span>
         </div>
-      `).join("")}
-    </div>
-  `;
-})()}
+      `;
+    }
+
+    // nationality
+    let nationalityBlock = "";
+    if (hasNationality) {
+      nationalityBlock = `
+        <div style="margin-bottom:10px;">
+          <strong style="font-size:14px;">Nationality:</strong>
+          <span> ${safe(form.nationality)}</span>
+        </div>
+      `;
+    }
+
+    // availability
+    let availabilityBlock = "";
+    if (hasAvailability) {
+      let text = "";
+      if (form.availabilityType === "Notice Period" && form.noticePeriod) {
+        text = "Notice Period for " + safe(form.noticePeriod);
+      } else if (
+        form.availabilityType === "Available From" &&
+        form.availableFromDate
+      ) {
+        text = "Available from " + safe(form.availableFromDate);
+      } else {
+        text = safe(form.availabilityType);
+      }
+
+      availabilityBlock = `
+        <div style="margin-bottom:10px;">
+          <strong style="font-size:14px;">Availability:</strong>
+          <span> ${text}</span>
+        </div>
+      `;
+    }
+
+    return `
+      <div class="section">
+        <h2>ADDITIONAL INFORMATION</h2>
+        <hr/>
+        ${languagesBlock}
+        ${nationalityBlock}
+        ${availabilityBlock}
+      </div>
+    `;
+  })()}
 
 </body>
 </html>
 `;
-
 
     // -------------------------------------
     // 🔹 START CHROMIUM (Render + Local)
@@ -519,7 +602,7 @@ app.post("/pdf/export", async (req, res) => {
 
         if (!execPath) {
           console.warn("⚠ chromium.executablePath returned null. Using fallback.");
-          execPath = "/usr/bin/chromium-browser"; // 🔹 Render fallback path
+          execPath = "/usr/bin/chromium-browser";
         }
 
         browser = await puppeteer.launch({
@@ -545,9 +628,6 @@ app.post("/pdf/export", async (req, res) => {
       return res.status(500).json({ error: "Failed to launch Chromium" });
     }
 
-    // -------------------------------------
-    // 🔹 Generate the PDF
-    // -------------------------------------
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: "networkidle0" });
 
@@ -565,17 +645,11 @@ app.post("/pdf/export", async (req, res) => {
 
     const pdfBuffer = Buffer.from(pdfUint8);
 
-    // -------------------------------------
-    // 🔹 Safe Filename
-    // -------------------------------------
     const fileName =
       (form.name || "resume")
         .replace(/[^a-zA-Z0-9_-]/g, "_")
         .substring(0, 40) + ".pdf";
 
-    // -------------------------------------
-    // 🔹 Correct Headers
-    // -------------------------------------
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
     res.setHeader("Content-Length", pdfBuffer.length);
@@ -589,6 +663,7 @@ app.post("/pdf/export", async (req, res) => {
     });
   }
 });
+
 
 
 
