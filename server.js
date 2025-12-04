@@ -500,7 +500,7 @@ app.post("/pdf/export", async (req, res) => {
             <p style="margin-bottom: 5px;">Issued By: ${safe(c.issuedBy)}</p>
             ${
               c.credential && c.credential.trim().length
-                ? `<p>Credential: ${safe(c.credential)}</p>`
+                ? `<p>Credential: <a href="${c.credential}">${safe(c.credential)}</a></p>`
                 : ""
             }
           </div>`
