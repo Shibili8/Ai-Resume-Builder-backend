@@ -521,7 +521,6 @@ app.post("/pdf/export", async (req, res) => {
 
     if (!hasLanguages && !hasNationality && !hasAvailability) return "";
 
-    // ---------------------- LANGUAGES (Updated Layout) ----------------------
     let languagesBlock = "";
     if (hasLanguages) {
       const items = (form.languages || [])
