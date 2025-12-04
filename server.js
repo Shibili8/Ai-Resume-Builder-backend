@@ -310,10 +310,11 @@ app.post("/pdf/export", async (req, res) => {
     <h1>${safe(form.name)}</h1>
     <h3 style="margin:0; font-weight:500; font-size:14px;">${safe(form.role)}</h3>
     <p style="margin-top:10px; font-size:14px;">
-      ${safe(form.emailId)? (`<a href="mailto:${form.emailId}"> ${form.emailId}</a>`)  :""}
+      ${form.city}, ${form.state}, ${form.pincode} 
+      ${safe(form.emailId)? (" | "+`<a href="mailto:${form.emailId}"> ${form.emailId}</a>`)  :""}
       ${form.phoneNo ? " | " + safe(form.phoneNo) : ""}
-      ${form.linkedIn ? (" | " + `<a href="${form.linkedIn}"> ${form.linkedIn}</a>`)  :""}
-      ${form.portfolioLink ? (" | "+ `<a href="${form.portfolioLink}"> ${form.portfolioLink}</a>`)  :""}
+      ${form.linkedIn ? (" | " + `<a href="${form.linkedIn}"> LinkedIn</a>`)  :""}
+      ${form.portfolioLink ? (" | "+ `<a href="${form.portfolioLink}"> Portfolio</a>`)  :""}
     </p>
   </div>
 
