@@ -325,57 +325,6 @@ app.post("/pdf/export", async (req, res) => {
     <p style="text-align:justify;">${cleanSummary}</p>
   </div>
 
-  <!-- ===================== EDUCATION ===================== -->
-  <div class="section">
-    <h2>EDUCATION</h2>
-    <hr/>
-    ${
-      (form.education && form.education.length)
-        ? form.education
-            .map(
-              (e) => `
-      <div class="mb-12">
-        <div class="flex-between" style="font-weight:600;">
-          <span style="color:#2B2B2B;">${safe(e.institute)}</span>
-          <span>${safe(e.startYear)} - ${safe(e.endYear)}</span>
-        </div>
-        <div style="display:flex; gap:4px; margin-top:4px;">
-          <span>${safe(e.eduType)}</span>
-          <span>${safe(e.department)}.</span>
-          <span>${safe(e.scoreType)}:</span>
-          <span>${safe(e.score)}</span>
-        </div>
-      </div>`
-            )
-            .join("")
-        : "<p>No education details</p>"
-    }
-  </div>
-
-  <!-- ===================== SKILLS ===================== -->
-  ${(() => {
-    let skills = [];
-    if (Array.isArray(form.skills)) {
-      skills = form.skills.filter((s) => s && s.toString().trim());
-    } else if (typeof form.skills === "string") {
-      skills = form.skills
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean);
-    }
-    if (!skills.length) return "";
-
-    return `
-      <div class="section">
-        <h2>SKILLS</h2>
-        <hr/>
-        <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:20px;">
-          <span>${skills.join(", ")}</span>
-        </div>
-      </div>
-    `;
-  })()}
-
   <!-- ===================== EXPERIENCE ===================== -->
   ${(() => {
     const validExp = (form.experience || []).filter((exp) =>
@@ -471,6 +420,57 @@ app.post("/pdf/export", async (req, res) => {
           </div>`
           )
           .join("")}
+      </div>
+    `;
+  })()}
+
+  <!-- ===================== EDUCATION ===================== -->
+  <div class="section">
+    <h2>EDUCATION</h2>
+    <hr/>
+    ${
+      (form.education && form.education.length)
+        ? form.education
+            .map(
+              (e) => `
+      <div class="mb-12">
+        <div class="flex-between" style="font-weight:600;">
+          <span style="color:#2B2B2B;">${safe(e.institute)}</span>
+          <span>${safe(e.startYear)} - ${safe(e.endYear)}</span>
+        </div>
+        <div style="display:flex; gap:4px; margin-top:4px;">
+          <span>${safe(e.eduType)}</span>
+          <span>${safe(e.department)}.</span>
+          <span>${safe(e.scoreType)}:</span>
+          <span>${safe(e.score)}</span>
+        </div>
+      </div>`
+            )
+            .join("")
+        : "<p>No education details</p>"
+    }
+  </div>
+
+  <!-- ===================== SKILLS ===================== -->
+  ${(() => {
+    let skills = [];
+    if (Array.isArray(form.skills)) {
+      skills = form.skills.filter((s) => s && s.toString().trim());
+    } else if (typeof form.skills === "string") {
+      skills = form.skills
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+    }
+    if (!skills.length) return "";
+
+    return `
+      <div class="section">
+        <h2>SKILLS</h2>
+        <hr/>
+        <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:20px;">
+          <span>${skills.join(", ")}</span>
+        </div>
       </div>
     `;
   })()}
