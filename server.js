@@ -389,7 +389,7 @@ app.post("/pdf/export", async (req, res) => {
                       p.link.startsWith("http")
                         ? p.link
                         : "https://" + p.link
-                    )}" style="color:blue;" target="_blank">${safe(p.link)}</a>`
+                    )}" style="color:blue;" target="_blank">Live Demo</a>`
                   : ""
               }
             </div>
