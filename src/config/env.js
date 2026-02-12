@@ -7,5 +7,4 @@ export const {
   JWT_SECRET,
   GOOGLE_API_KEY,
   FRONTEND_ORIGIN,
-  RENDER,
 } = process.env;
