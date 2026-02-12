@@ -6,7 +6,7 @@ import { JWT_SECRET } from "../config/env.js";
 export async function register(req, res) {
   const { name, email, password } = req.body;
   const users = getDB().collection("users");
-
+  
   const exists = await users.findOne({ email });
   if (exists) return res.status(400).json({ error: "User exists" });
 
