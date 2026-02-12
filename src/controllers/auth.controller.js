@@ -19,7 +19,7 @@ export async function register(req, res) {
 export async function login(req, res) {
   const { email, password } = req.body;
   const users = getDB().collection("users");
-  console.log(JWT_SECRET)
+  console.log(JWT_SECRET, "testing")
   const user = await users.findOne({ email });
   if (!user) return res.status(400).json({ error: "User not found" });
 
