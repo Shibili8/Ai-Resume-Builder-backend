@@ -73,19 +73,19 @@ backend/
 │   │   └── db.js
 │   │
 │   ├── controllers/
+│   │   ├── ai.controller.js 
 │   │   ├── auth.controller.js
-│   │   ├── ai.controller.js
-│   │   ├── portfolio.controller.js
-│   │   └── pdf.controller.js
+│   │   ├── pdf.controller.js 
+│   │   └── portfolio.controller.js
 │   │
 │   ├── middleware/
 │   │   └── auth.middleware.js
 │   │
 │   ├── routes/
-│   │   ├── auth.routes.js
 │   │   ├── ai.routes.js
-│   │   ├── portfolio.routes.js
-│   │   └── pdf.routes.js
+│   │   ├── auth.routes.js 
+│   │   ├── pdf.routes.js 
+│   │   └── portfolio.routes.js
 │   │
 │   ├── services/
 │   │   └── gemini.service.js
@@ -93,9 +93,11 @@ backend/
 │   ├── utils/
 │   │   ├── browser.js
 │   │   └── normalizeEducation.js
-│   │
+│ 
+|   ├── app.js
 │   └── server.js
 │
+├── .env
 └── package.json
 ```
 
