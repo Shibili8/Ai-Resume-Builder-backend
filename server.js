@@ -307,7 +307,7 @@ app.post("/pdf/export", async (req, res) => {
 
   <!-- ===================== HEADER ===================== -->
   <div style="text-align:center; margin-bottom:20px;">
-    <h1>${safe(form.name)}</h1>
+    <h1 style="color:#1d59b5;">${safe(form.name)}</h1>
     <h3 style="margin:0; font-weight:500; font-size:14px;">${safe(form.role)}</h3>
     <p style="margin-top:10px; font-size:14px;">
       ${safe(form.city)}, ${safe(form.state)}, ${safe(form.pincode)} 
@@ -320,7 +320,7 @@ app.post("/pdf/export", async (req, res) => {
 
   <!-- ===================== SUMMARY ===================== -->
   <div class="section">
-    <h2>SUMMARY</h2>
+    <h2 style="color:#1d59b5;">SUMMARY</h2>
     <hr/>
     <p style="text-align:justify;">${cleanSummary}</p>
   </div>
@@ -337,7 +337,7 @@ app.post("/pdf/export", async (req, res) => {
 
     return `
       <div class="section">
-        <h2>EXPERIENCE</h2>
+        <h2 style="color:#1d59b5;">EXPERIENCE</h2>
         <hr/>
         ${validExp
           .map(
@@ -375,7 +375,7 @@ app.post("/pdf/export", async (req, res) => {
 
     return `
       <div class="section">
-        <h2>PROJECTS</h2>
+        <h2 style="color:#1d59b5;">PROJECTS</h2>
         <hr/>
         ${validProjects
           .map(
@@ -426,7 +426,7 @@ app.post("/pdf/export", async (req, res) => {
 
   <!-- ===================== EDUCATION ===================== -->
   <div class="section">
-    <h2>EDUCATION</h2>
+    <h2 style="color:#1d59b5;">EDUCATION</h2>
     <hr/>
     ${
       (form.education && form.education.length)
@@ -466,7 +466,7 @@ app.post("/pdf/export", async (req, res) => {
 
     return `
       <div class="section">
-        <h2>SKILLS</h2>
+        <h2 style="color:#1d59b5;">SKILLS</h2>
         <hr/>
         <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:20px;">
           <span>${skills.join(", ")}</span>
@@ -487,7 +487,7 @@ app.post("/pdf/export", async (req, res) => {
 
     return `
       <div class="section">
-        <h2>CERTIFICATES</h2>
+        <h2 style="color:#1d59b5;">CERTIFICATES</h2>
         <hr/>
         ${validCerts
           .map(
@@ -598,7 +598,7 @@ app.post("/pdf/export", async (req, res) => {
 
     return `
       <div class="section">
-        <h2>ADDITIONAL INFORMATION</h2>
+        <h2 style="color:#1d59b5;">ADDITIONAL INFORMATION</h2>
         <hr/>
         ${languagesBlock}
         ${nationalityBlock}
