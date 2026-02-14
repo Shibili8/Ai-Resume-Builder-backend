@@ -16,7 +16,17 @@ export async function savePortfolio(req, res) {
 }
 
 export async function getPortfolios(req, res) {
-  const portfolios = getDB().collection("portfolios");
-  const data = await portfolios.find({ userId: req.user.id }).toArray();
-  res.json(data);
+  try {
+    const portfolios = getDB().collection("portfolios");
+
+    const data = await portfolios
+      .find({ userId: req.user.id })
+      .toArray();
+
+    res.json(data);
+  } catch (err) {
+    console.error("GET PORTFOLIO ERROR:", err);
+    res.status(500).json({ error: "Failed to fetch portfolio" });
+  }
 }
+
