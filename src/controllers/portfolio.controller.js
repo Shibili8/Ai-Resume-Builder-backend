@@ -17,6 +17,8 @@ export async function savePortfolio(req, res) {
 
 export async function getPortfolios(req, res) {
   try {
+    console.log("USER:", req.user); // 👈 ADD THIS
+
     const portfolios = getDB().collection("portfolios");
 
     const data = await portfolios
@@ -29,4 +31,5 @@ export async function getPortfolios(req, res) {
     res.status(500).json({ error: "Failed to fetch portfolio" });
   }
 }
+
 
