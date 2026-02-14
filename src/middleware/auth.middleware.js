@@ -6,7 +6,7 @@ export function authMiddleware(req, res, next) {
   if (aiToken) return res.status(401).json({ error: "Unauthorized" });
 
   try {
-    const decoded = jwt.verify(aiToken, process.env.JWT_SECRET);
+    const decoded = jwt.verify(aiToken, JWT_SECRET);
     req.user = decoded;
     next();
   } catch {
