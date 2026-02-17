@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { authMiddleware } from "../middleware/auth.middleware.js";
 import {
   savePortfolio,
   getPortfolios,
@@ -6,7 +7,8 @@ import {
 
 const router = Router();
 
-router.post("/", savePortfolio);
-router.get("/", getPortfolios);
+// ✅ Apply middleware here
+router.post("/", authMiddleware, savePortfolio);
+router.get("/", authMiddleware, getPortfolios);
 
 export default router;
