@@ -32,6 +32,10 @@ export async function savePortfolio(req, res) {
 // ==============================
 export async function getPortfolios(req, res) {
   try {
+    if (!req.user?.id) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
     const portfolios = getDB().collection("portfolios");
 
     const data = await portfolios
