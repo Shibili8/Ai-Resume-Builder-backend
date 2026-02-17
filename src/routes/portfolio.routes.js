@@ -9,6 +9,6 @@ const router = Router();
 
 // ✅ Apply middleware here
 router.post("/", authMiddleware, savePortfolio);
-router.get("/", authMiddleware, getPortfolios);
+router.get("/list", authMiddleware, getPortfolios);
 
 export default router;
