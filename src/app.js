@@ -10,7 +10,15 @@ import pdfRoutes from "./routes/pdf.routes.js";
 const app = express();
 
 app.use(express.json({ limit: "2mb" }));
-app.use(cors({ origin: FRONTEND_ORIGIN || "*" }));
+app.use(
+  cors({
+    origin: [
+      "http://localhost:3000",
+      FRONTEND_ORIGIN,
+    ],
+    credentials: true,
+  })
+);
 
 app.use("/auth", authRoutes);
 app.use("/ai", aiRoutes);
