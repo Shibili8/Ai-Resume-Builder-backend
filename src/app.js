@@ -10,9 +10,24 @@ import pdfRoutes from "./routes/pdf.routes.js";
 const app = express();
 
 app.use(express.json({ limit: "2mb" }));
+
+const allowedOrigins = [
+  "http://localhost:3000",
+  "https://ai-resume-builder-shibili-eight.vercel.app",
+  "https://shibili-ai-resume-builder-app-shibili8s-projects.vercel.app"
+];
+
 app.use(cors({
-  origin: "*"
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  credentials: true
 }));
+
 
 app.use("/auth", authRoutes);
 app.use("/ai", aiRoutes);
