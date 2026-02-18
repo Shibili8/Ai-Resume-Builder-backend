@@ -10,20 +10,13 @@ import pdfRoutes from "./routes/pdf.routes.js";
 const app = express();
 
 app.use(express.json({ limit: "2mb" }));
-const allowedOrigins = [
-  "http://localhost:3000",
-  process.env.FRONTEND_ORIGIN,
-];
-
 app.use(
   cors({
-    origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
-      }
-    },
+    origin: [
+      "http://localhost:3000",
+      "https://ai-resume-builder-shibili-eight.vercel.app",
+    ],
+    credentials: true,
   })
 );
 

@@ -2,8 +2,6 @@ import jwt from "jsonwebtoken";
 import { JWT_SECRET } from "../config/env.js";
 
 export function authMiddleware(req, res, next) {
-  console.log("AUTH HEADER:", req.headers.authorization);
-
   const aiToken = req.headers.authorization?.split(" ")[1];
 
   // ❌ No token
