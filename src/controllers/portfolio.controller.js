@@ -7,16 +7,34 @@ import { ObjectId } from "mongodb";
 // ==============================
 
 export async function savePortfolio(req, res) {
+
   try {
 
     if (!req.user?.id) {
+
       return res.status(401).json({
         error: "Unauthorized"
       });
+
     }
 
     const portfolios =
       getDB().collection("portfolios");
+
+    let userId;
+
+    // ✅ Safely handle ObjectId
+    if (ObjectId.isValid(req.user.id)) {
+
+      userId =
+        new ObjectId(req.user.id);
+
+    } else {
+
+      userId =
+        req.user.id;
+
+    }
 
     const data = {
 
@@ -27,10 +45,7 @@ export async function savePortfolio(req, res) {
           req.body.education
         ),
 
-      // ✅ Convert to ObjectId
-      userId: new ObjectId(
-        req.user.id
-      ),
+      userId,
 
       createdAt: new Date(),
 
@@ -56,6 +71,7 @@ export async function savePortfolio(req, res) {
     });
 
   }
+
 }
 
 
@@ -80,17 +96,17 @@ export async function getPortfolios(req, res) {
 
     let userId;
 
-    try {
+    // ✅ Handle both ObjectId and string IDs
 
-      // ✅ Safely convert userId
+    if (ObjectId.isValid(req.user.id)) {
+
       userId =
         new ObjectId(req.user.id);
 
-    } catch {
+    } else {
 
-      return res.status(400).json({
-        error: "Invalid user ID"
-      });
+      userId =
+        req.user.id;
 
     }
 
