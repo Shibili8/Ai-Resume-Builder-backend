@@ -1,25 +1,72 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import OpenAI from "openai";
 
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
-const model = genAI.getGenerativeModel({
-  model: "models/gemini-2.5-flash",
+const openai = new OpenAI({
+  baseURL: "https://openrouter.ai/api/v1",
+  apiKey: process.env.OPENROUTER_API_KEY,
 });
 
 /**
  * Generate AI text with retry logic
  */
-export async function generateWithRetry(prompt, retries = 3) {
+
+export async function generateWithRetry(
+  prompt,
+  retries = 3
+) {
+
   for (let i = 0; i < retries; i++) {
+
     try {
-      const result = await model.generateContent(prompt);
-      return result.response.text();
+
+      const completion =
+        await openai.chat.completions.create({
+
+          model: "deepseek/deepseek-chat", // ✅ free model
+
+          messages: [
+            {
+              role: "user",
+              content: prompt,
+            },
+          ],
+
+          max_tokens: 300,
+
+        });
+
+      return completion
+        .choices[0]
+        .message.content;
+
     } catch (error) {
-      if (error.message.includes("503") && i < retries - 1) {
-        console.log(`⚠ Gemini overloaded, retrying (${i + 1}/${retries})...`);
-        await new Promise((r) => setTimeout(r, 3000));
+
+      console.error(
+        "OpenRouter Error:",
+        error.message
+      );
+
+      // Retry if overloaded
+      if (
+        error.status === 429 &&
+        i < retries - 1
+      ) {
+
+        console.log(
+          `⚠ Rate limit hit, retrying (${i + 1}/${retries})...`
+        );
+
+        await new Promise((r) =>
+          setTimeout(r, 3000)
+        );
+
       } else {
+
         throw error;
+
       }
+
     }
+
   }
+
 }
