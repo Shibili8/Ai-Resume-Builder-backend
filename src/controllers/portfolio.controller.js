@@ -131,3 +131,111 @@ export async function getPortfolios(req, res) {
   }
 
 }
+// ==============================
+// 🔹 GET SINGLE PORTFOLIO
+// ==============================
+
+export async function getPortfolioById(req, res) {
+
+  try {
+
+    const portfolios =
+      getDB().collection("portfolios");
+
+    const { id } = req.params;
+
+    const data = await portfolios.findOne({
+      _id: new ObjectId(id),
+    });
+
+    if (!data) {
+
+      return res.status(404).json({
+        error: "Portfolio not found"
+      });
+
+    }
+
+    res.json(data);
+
+  } catch (err) {
+
+    console.error(
+      "FETCH ONE ERROR:",
+      err
+    );
+
+    res.status(500).json({
+      error: "Failed to fetch portfolio"
+    });
+
+  }
+
+}
+
+export async function updatePortfolio(req, res) {
+
+  try {
+
+    const portfolios =
+      getDB().collection("portfolios");
+
+    const { id } = req.params;
+
+    await portfolios.updateOne(
+      { _id: new ObjectId(id) },
+      { $set: req.body }
+    );
+
+    res.json({
+      success: true
+    });
+
+  } catch (err) {
+
+    console.error(err);
+
+    res.status(500).json({
+      error: "Update failed"
+    });
+
+  }
+
+}
+
+
+// ==============================
+// 🔹 DELETE PORTFOLIO
+// ==============================
+
+export async function deletePortfolio(req, res) {
+
+  try {
+
+    const portfolios =
+      getDB().collection("portfolios");
+
+    const { id } = req.params;
+
+    await portfolios.deleteOne({
+      _id: new ObjectId(id),
+    });
+
+    res.json({
+      success: true
+    });
+
+  } catch (err) {
+
+    console.error(
+      "DELETE ERROR:",
+      err
+    );
+
+    res.status(500).json({
+      error: "Failed to delete portfolio"
+    });
+
+  }
+
+}

@@ -3,11 +3,12 @@ import OpenAI from "openai";
 const openai = new OpenAI({
   baseURL: "https://openrouter.ai/api/v1",
   apiKey: process.env.OPENROUTER_API_KEY,
-});
 
-/**
- * Generate AI text with retry logic
- */
+  defaultHeaders: {
+    "HTTP-Referer": "https://ai-resume-builder.vercel.app",
+    "X-Title": "AI Resume Builder",
+  },
+});
 
 export async function generateWithRetry(
   prompt,
@@ -21,7 +22,7 @@ export async function generateWithRetry(
       const completion =
         await openai.chat.completions.create({
 
-          model: "deepseek/deepseek-chat", // ✅ free model
+          model: "deepseek/deepseek-chat",
 
           messages: [
             {
@@ -45,15 +46,10 @@ export async function generateWithRetry(
         error.message
       );
 
-      // Retry if overloaded
       if (
         error.status === 429 &&
         i < retries - 1
       ) {
-
-        console.log(
-          `⚠ Rate limit hit, retrying (${i + 1}/${retries})...`
-        );
 
         await new Promise((r) =>
           setTimeout(r, 3000)
