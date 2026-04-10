@@ -19,10 +19,18 @@ export async function generateWithRetry(
 
     try {
 
+      const models = [
+        "deepseek/deepseek-chat",
+        "mistralai/mistral-7b-instruct",
+        "meta-llama/llama-3-8b"
+      ];
+      const randomModel =
+        models[Math.floor(Math.random() * models.length)];
+
       const completion =
         await openai.chat.completions.create({
 
-          model: "deepseek/deepseek-chat",
+          model: randomModel,
 
           messages: [
             {
