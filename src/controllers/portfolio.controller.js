@@ -177,14 +177,45 @@ export async function updatePortfolio(req, res) {
 
   try {
 
+    if (!req.user?.id) {
+
+      return res.status(401).json({
+        error: "Unauthorized"
+      });
+
+    }
+
     const portfolios =
       getDB().collection("portfolios");
 
     const { id } = req.params;
 
+    const updatedData = {
+
+      ...req.body,
+
+      // normalize education again
+      education:
+        normalizeEducationArray(
+          req.body.education
+        ),
+
+      updatedAt:
+        new Date()
+
+    };
+
     await portfolios.updateOne(
-      { _id: new ObjectId(id) },
-      { $set: req.body }
+
+      {
+        _id: new ObjectId(id),
+        userId: req.user.id
+      },
+
+      {
+        $set: updatedData
+      }
+
     );
 
     res.json({
@@ -193,7 +224,10 @@ export async function updatePortfolio(req, res) {
 
   } catch (err) {
 
-    console.error(err);
+    console.error(
+      "UPDATE ERROR:",
+      err
+    );
 
     res.status(500).json({
       error: "Update failed"
@@ -202,7 +236,6 @@ export async function updatePortfolio(req, res) {
   }
 
 }
-
 
 // ==============================
 // 🔹 DELETE PORTFOLIO
