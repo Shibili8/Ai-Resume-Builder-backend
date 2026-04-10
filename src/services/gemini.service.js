@@ -31,7 +31,7 @@ export async function generateWithRetry(
             },
           ],
 
-          max_tokens: 300,
+          max_tokens: 250,
 
         });
 
@@ -42,7 +42,7 @@ export async function generateWithRetry(
     } catch (error) {
 
       console.error(
-        "OpenRouter Error:",
+        "AI Error:",
         error.message
       );
 
@@ -51,8 +51,13 @@ export async function generateWithRetry(
         i < retries - 1
       ) {
 
+        console.log(
+          "Waiting before retry..."
+        );
+
+        // wait 5 seconds
         await new Promise((r) =>
-          setTimeout(r, 3000)
+          setTimeout(r, 5000)
         );
 
       } else {
