@@ -190,11 +190,26 @@ export async function updatePortfolio(req, res) {
 
     const { id } = req.params;
 
+    let userId;
+
+    // ✅ Handle ObjectId correctly
+
+    if (ObjectId.isValid(req.user.id)) {
+
+      userId =
+        new ObjectId(req.user.id);
+
+    } else {
+
+      userId =
+        req.user.id;
+
+    }
+
     const updatedData = {
 
       ...req.body,
 
-      // normalize education again
       education:
         normalizeEducationArray(
           req.body.education
@@ -205,18 +220,29 @@ export async function updatePortfolio(req, res) {
 
     };
 
-    await portfolios.updateOne(
+    const result =
+      await portfolios.updateOne(
 
-      {
-        _id: new ObjectId(id),
-        userId: req.user.id
-      },
+        {
+          _id: new ObjectId(id),
+          userId
+        },
 
-      {
-        $set: updatedData
-      }
+        {
+          $set: updatedData
+        }
 
-    );
+      );
+
+    // ✅ Check update actually happened
+
+    if (result.matchedCount === 0) {
+
+      return res.status(404).json({
+        error: "Resume not found or unauthorized"
+      });
+
+    }
 
     res.json({
       success: true
