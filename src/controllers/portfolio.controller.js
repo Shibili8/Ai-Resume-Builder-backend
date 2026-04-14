@@ -177,24 +177,23 @@ export async function updatePortfolio(req, res) {
 
   try {
 
-    if (!req.user?.id) {
-
-      return res.status(401).json({
-        error: "Unauthorized"
-      });
-
-    }
-
     const portfolios =
       getDB().collection("portfolios");
 
     const { id } = req.params;
 
+    if (!ObjectId.isValid(id)) {
+
+      return res.status(400).json({
+        error: "Invalid portfolio ID"
+      });
+
+    }
+
     const updatedData = {
 
       ...req.body,
 
-      // normalize education again
       education:
         normalizeEducationArray(
           req.body.education
@@ -205,18 +204,26 @@ export async function updatePortfolio(req, res) {
 
     };
 
-    await portfolios.updateOne(
+    const result =
+      await portfolios.updateOne(
 
-      {
-        _id: new ObjectId(id),
-        userId: req.user.id
-      },
+        {
+          _id: new ObjectId(id)
+        },
 
-      {
-        $set: updatedData
-      }
+        {
+          $set: updatedData
+        }
 
-    );
+      );
+
+    if (result.matchedCount === 0) {
+
+      return res.status(404).json({
+        error: "Resume not found"
+      });
+
+    }
 
     res.json({
       success: true
@@ -236,7 +243,6 @@ export async function updatePortfolio(req, res) {
   }
 
 }
-
 // ==============================
 // 🔹 DELETE PORTFOLIO
 // ==============================
