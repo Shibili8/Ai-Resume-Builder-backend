@@ -190,11 +190,26 @@ export async function updatePortfolio(req, res) {
 
     const { id } = req.params;
 
+    let userId;
+
+    // ✅ FIX userId type
+
+    if (ObjectId.isValid(req.user.id)) {
+
+      userId =
+        new ObjectId(req.user.id);
+
+    } else {
+
+      userId =
+        req.user.id;
+
+    }
+
     const updatedData = {
 
       ...req.body,
 
-      // normalize education again
       education:
         normalizeEducationArray(
           req.body.education
@@ -205,18 +220,32 @@ export async function updatePortfolio(req, res) {
 
     };
 
-    await portfolios.updateOne(
+    const result =
+      await portfolios.updateOne(
 
-      {
-        _id: new ObjectId(id),
-        userId: req.user.id
-      },
+        {
+          _id: new ObjectId(id),
+          userId
+        },
 
-      {
-        $set: updatedData
-      }
+        {
+          $set: updatedData
+        }
 
+      );
+
+    console.log(
+      "Update Result:",
+      result
     );
+
+    if (result.matchedCount === 0) {
+
+      return res.status(404).json({
+        error: "No matching resume found"
+      });
+
+    }
 
     res.json({
       success: true
