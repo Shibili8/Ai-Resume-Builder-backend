@@ -85,170 +85,119 @@ export const exportPdf = async (req, res) => {
 // ======================================================
 function buildResumeHtml(form, cleanSummary) {
 
-  const safe = (v) =>
-    v ? String(v) : "";
-
-  /* ================= SECTION CHECKERS ================= */
-
-  const hasExperience =
-    form.experience?.some(
-      e => e.role || e.company
-    );
-
-  const hasProjects =
-    form.projects?.some(
-      p => p.name
-    );
-
-  const hasCertificates =
-    form.certificates?.some(
-      c => c.title
-    );
-
-  const hasSkills =
-    Array.isArray(form.skills) &&
-    form.skills.some(s => s);
-
-  const hasLanguages =
-    form.languages?.some(
-      l => l.language
-    );
-
-  const hasAdditional =
-    hasLanguages ||
-    form.nationality ||
-    form.availabilityType;
+const safe = (v) =>
+  v ? String(v) : "";
 
 
+/* ================= SECTION CHECKERS ================= */
 
-  /* ================= PERSONAL INFO ================= */
+const hasExperience =
+  form.experience?.some(
+    e => e.role || e.company
+  );
 
-  const personalInfo = [
+const hasProjects =
+  form.projects?.some(
+    p => p.name
+  );
 
-    `${safe(form.city)}${
-      form.state ? ", " + safe(form.state) : ""
-    }${
-      form.pincode ? ", " + safe(form.pincode) : ""
-    }`,
+const hasCertificates =
+  form.certificates?.some(
+    c => c.title
+  );
 
-    form.emailId,
-    form.phoneNo,
-    form.linkedIn,
-    form.portfolioLink
+const hasSkills =
+  Array.isArray(form.skills) &&
+  form.skills.some(s => s);
 
-  ].filter(Boolean).join(" | ");
+const hasLanguages =
+  form.languages?.some(
+    l => l.language
+  );
+
+const hasAdditional =
+  hasLanguages ||
+  form.nationality ||
+  form.availabilityType;
+
+
+/* ================= PERSONAL INFO ================= */
+
+const personalInfo = [
+
+`${safe(form.city)}${
+  form.state ? ", " + safe(form.state) : ""
+}${
+  form.pincode ? ", " + safe(form.pincode) : ""
+}`,
+
+form.emailId,
+form.phoneNo,
+form.linkedIn,
+form.portfolioLink
+
+].filter(Boolean).join(" | ");
 
 
 
-  return `
+return `
 
 <!DOCTYPE html>
 
 <html>
 
 <head>
-
 <meta charset="utf-8"/>
-
-<style>
-
-body {
-font-family: Arial, sans-serif;
-padding: 40px;
-line-height: 1.5;
-color: black;
-}
-
-/* NAME */
-
-h1 {
-margin: 0;
-font-weight: 600;
-font-size: 20px;
-color: #1d59b5;
-}
-
-/* ROLE */
-
-h3 {
-margin: 4px 0 6px 0;
-font-size: 14px;
-font-weight: 600;
-}
-
-/* SECTION HEADINGS */
-
-h2 {
-font-weight: 600;
-color: #1d59b5;
-font-size: 16px;
-margin-top: 16px;
-margin-bottom: 2px;
-}
-
-/* TEXT */
-
-p,
-span,
-div {
-font-size: 12px;
-}
-
-/* LINE */
-
-hr {
-border: 1px solid black;
-margin-bottom: 10px;
-margin-top: 4px;
-}
-
-/* FLEX ROW */
-
-.flex-between {
-display: flex;
-justify-content: space-between;
-font-weight: 600;
-}
-
-/* BLOCK SPACING */
-
-.section {
-margin-bottom: 12px;
-}
-
-/* LINKS */
-
-a {
-color: black;
-text-decoration: none;
-font-size: 12px;
-}
-
-</style>
-
 </head>
 
-<body>
-
+<body
+style="
+font-family:Arial;
+padding:40px;
+line-height:1.5;
+"
+>
 
 
 <!-- HEADER -->
 
-<div style="text-align:center;margin-bottom:20px;">
+<div
+style="
+text-align:center;
+margin-bottom:20px;
+"
+>
 
-<h1>
+<h1
+style="
+margin:0;
+font-weight:600;
+font-size:20px;
+color:#1d59b5;
+"
+>
 
 ${safe(form.name)}
 
 </h1>
 
-<h3>
+<h3
+style="
+font-size:14px;
+margin:4px 0;
+font-weight:600;
+"
+>
 
 ${safe(form.role)}
 
 </h3>
 
-<p>
+<p
+style="
+font-size:14px;
+"
+>
 
 ${personalInfo}
 
@@ -262,9 +211,24 @@ ${personalInfo}
 
 ${cleanSummary ? `
 
-<h2>SUMMARY</h2>
+<h2
+style="
+font-weight:600;
+color:#1d59b5;
+font-size:16px;
+"
+>
 
-<hr/>
+SUMMARY
+
+</h2>
+
+<hr
+style="
+border:1px solid;
+margin-bottom:10px;
+"
+/>
 
 <p>
 
@@ -280,17 +244,42 @@ ${safe(cleanSummary)}
 
 ${hasExperience ? `
 
-<h2>EXPERIENCE</h2>
+<h2
+style="
+font-weight:600;
+color:#1d59b5;
+font-size:16px;
+"
+>
 
-<hr/>
+EXPERIENCE
+
+</h2>
+
+<hr
+style="
+border:1px solid;
+margin-bottom:10px;
+"
+/>
 
 ${form.experience
 .filter(e => e.role || e.company)
 .map(e => `
 
-<div class="section">
+<div
+style="
+margin-bottom:12px;
+"
+>
 
-<div class="flex-between">
+<div
+style="
+display:flex;
+justify-content:space-between;
+font-weight:600;
+"
+>
 
 <span>
 
@@ -326,9 +315,24 @@ ${e.activities ? `<p>${safe(e.activities)}</p>` : ""}
 
 ${hasSkills ? `
 
-<h2>SKILLS</h2>
+<h2
+style="
+font-weight:600;
+color:#1d59b5;
+font-size:16px;
+"
+>
 
-<hr/>
+SKILLS
+
+</h2>
+
+<hr
+style="
+border:1px solid;
+margin-bottom:10px;
+"
+/>
 
 <p>
 
@@ -346,15 +350,40 @@ ${form.skills
 
 ${form.education?.length ? `
 
-<h2>EDUCATION</h2>
+<h2
+style="
+font-weight:600;
+color:#1d59b5;
+font-size:16px;
+"
+>
 
-<hr/>
+EDUCATION
+
+</h2>
+
+<hr
+style="
+border:1px solid;
+margin-bottom:10px;
+"
+/>
 
 ${form.education.map(e => `
 
-<div class="section">
+<div
+style="
+margin-bottom:12px;
+"
+>
 
-<div class="flex-between">
+<div
+style="
+display:flex;
+justify-content:space-between;
+font-weight:600;
+"
+>
 
 <span>
 
@@ -370,12 +399,16 @@ ${safe(e.startYear)} - ${safe(e.endYear)}
 
 </div>
 
-<div class="flex-between">
+<div
+style="
+display:flex;
+justify-content:space-between;
+"
+>
 
 <div>
 
 ${safe(e.eduType)}
-
 ${e.department ? ` ${safe(e.department)}` : ""}
 
 </div>
@@ -402,17 +435,42 @@ ${e.score
 
 ${hasCertificates ? `
 
-<h2>CERTIFICATES</h2>
+<h2
+style="
+font-weight:600;
+color:#1d59b5;
+font-size:16px;
+"
+>
 
-<hr/>
+CERTIFICATES
+
+</h2>
+
+<hr
+style="
+border:1px solid;
+margin-bottom:10px;
+"
+/>
 
 ${form.certificates
 .filter(c => c.title)
 .map(c => `
 
-<div class="section">
+<div
+style="
+margin-bottom:10px;
+"
+>
 
-<div class="flex-between">
+<div
+style="
+display:flex;
+justify-content:space-between;
+font-weight:600;
+"
+>
 
 <span>
 
@@ -446,17 +504,42 @@ ${safe(c.issuedBy)}
 
 ${hasProjects ? `
 
-<h2>PROJECTS</h2>
+<h2
+style="
+font-weight:600;
+color:#1d59b5;
+font-size:16px;
+"
+>
 
-<hr/>
+PROJECTS
+
+</h2>
+
+<hr
+style="
+border:1px solid;
+margin-bottom:10px;
+"
+/>
 
 ${form.projects
 .filter(p => p.name)
 .map(p => `
 
-<div class="section">
+<div
+style="
+margin-bottom:12px;
+"
+>
 
-<div class="flex-between">
+<div
+style="
+display:flex;
+justify-content:space-between;
+font-weight:600;
+"
+>
 
 <span>
 
@@ -490,9 +573,24 @@ ${p.technologies
 
 ${hasAdditional ? `
 
-<h2>ADDITIONAL INFORMATION</h2>
+<h2
+style="
+font-weight:600;
+color:#1d59b5;
+font-size:16px;
+"
+>
 
-<hr/>
+ADDITIONAL INFORMATION
+
+</h2>
+
+<hr
+style="
+border:1px solid;
+margin-bottom:10px;
+"
+/>
 
 ${hasLanguages ? `
 
@@ -519,7 +617,6 @@ return `${safe(l.language)} (${levels.join(", ")})`;
 
 ` : ""}
 
-
 ${form.nationality
 ? `<div><strong>Nationality:</strong> ${safe(form.nationality)}</div>`
 : ""}
@@ -539,4 +636,3 @@ ${form.availabilityType
 `;
 
 }
-
