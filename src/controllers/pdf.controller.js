@@ -153,40 +153,75 @@ function buildResumeHtml(form, cleanSummary) {
 <style>
 
 body {
-font-family: Arial;
+font-family: Arial, sans-serif;
 padding: 40px;
+line-height: 1.5;
+color: black;
 }
+
+/* NAME */
 
 h1 {
-margin:0;
-font-weight:600;
-font-size:20px;
-color:#1d59b5;
+margin: 0;
+font-weight: 600;
+font-size: 20px;
+color: #1d59b5;
 }
+
+/* ROLE */
+
+h3 {
+margin: 4px 0 6px 0;
+font-size: 14px;
+font-weight: 600;
+}
+
+/* SECTION HEADINGS */
 
 h2 {
-font-weight:600;
-color:#1d59b5;
-font-size:16px;
+font-weight: 600;
+color: #1d59b5;
+font-size: 16px;
+margin-top: 16px;
+margin-bottom: 2px;
 }
 
-p, span, div {
-font-size:12px;
+/* TEXT */
+
+p,
+span,
+div {
+font-size: 12px;
 }
+
+/* LINE */
 
 hr {
-border:1px solid black;
-margin-bottom:10px;
+border: 1px solid black;
+margin-bottom: 10px;
+margin-top: 4px;
 }
+
+/* FLEX ROW */
 
 .flex-between {
-display:flex;
-justify-content:space-between;
-font-weight:600;
+display: flex;
+justify-content: space-between;
+font-weight: 600;
 }
 
+/* BLOCK SPACING */
+
 .section {
-margin-bottom:12px;
+margin-bottom: 12px;
+}
+
+/* LINKS */
+
+a {
+color: black;
+text-decoration: none;
+font-size: 12px;
 }
 
 </style>
