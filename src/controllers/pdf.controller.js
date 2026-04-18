@@ -84,207 +84,423 @@ export const exportPdf = async (req, res) => {
 // 🔹 HTML BUILDER (unchanged, safe to keep here)
 // ======================================================
 function buildResumeHtml(form, cleanSummary) {
-  const safe = (v) => (v ? String(v) : "");
+
+  const safe = (v) =>
+    v ? String(v) : "";
+
+  /* ================= SECTION CHECKERS ================= */
 
   const hasExperience =
     form.experience?.some(
-      (e) => e.role || e.company || e.duration || e.activities
+      e => e.role || e.company
     );
 
   const hasProjects =
     form.projects?.some(
-      (p) => p.name || p.description || p.technologies
+      p => p.name
     );
 
   const hasCertificates =
     form.certificates?.some(
-      (c) => c.title || c.issuedBy || c.issuedOn
+      c => c.title
     );
 
   const hasSkills =
     Array.isArray(form.skills) &&
-    form.skills.some((s) => s && s.trim());
+    form.skills.some(s => s);
 
   const hasLanguages =
-    form.languages?.some((l) => l.language && l.language.trim());
+    form.languages?.some(
+      l => l.language
+    );
 
   const hasAdditional =
     hasLanguages ||
-    (form.nationality && form.nationality.trim()) ||
-    (form.availabilityType && form.availabilityType.trim());
+    form.nationality ||
+    form.availabilityType;
+
+
+
+  /* ================= PERSONAL INFO ================= */
+
+  const personalInfo = [
+
+    `${safe(form.city)}${
+      form.state ? ", " + safe(form.state) : ""
+    }${
+      form.pincode ? ", " + safe(form.pincode) : ""
+    }`,
+
+    form.emailId,
+    form.phoneNo,
+    form.linkedIn,
+    form.portfolioLink
+
+  ].filter(Boolean).join(" | ");
+
+
 
   return `
+
 <!DOCTYPE html>
+
 <html>
+
 <head>
+
 <meta charset="utf-8"/>
+
 <style>
-body { font-family: Arial, sans-serif; padding: 40px; }
-h1 { font-size: 20px; font-weight: 600; margin-bottom: 4px; }
-h2 { font-size: 15px; font-weight: 700; margin-top: 20px; }
-p, span, li, div { font-size: 12px; }
-hr { border: 1px solid #000; margin: 6px 0 10px; }
-.section { margin-bottom: 10px; }
-.flex-between { display: flex; justify-content: space-between; }
-ul { padding-left: 18px; margin-top: 4px; }
+
+body {
+font-family: Arial;
+padding: 40px;
+}
+
+h1 {
+margin:0;
+font-weight:600;
+font-size:20px;
+color:#1d59b5;
+}
+
+h2 {
+font-weight:600;
+color:#1d59b5;
+font-size:16px;
+}
+
+p, span, div {
+font-size:12px;
+}
+
+hr {
+border:1px solid black;
+margin-bottom:10px;
+}
+
+.flex-between {
+display:flex;
+justify-content:space-between;
+font-weight:600;
+}
+
+.section {
+margin-bottom:12px;
+}
+
 </style>
+
 </head>
 
 <body>
 
+
+
 <!-- HEADER -->
-<div style="text-align:center; margin-bottom:20px;">
-  <h1>${safe(form.name)}</h1>
-  <div>${safe(form.role)}</div>
-  <div>
-    ${safe(form.city)}, ${safe(form.state)}, ${safe(form.pincode)}
-    ${form.emailId ? ` | ${safe(form.emailId)}` : ""}
-    ${form.phoneNo ? ` | ${safe(form.phoneNo)}` : ""}
-    ${form.linkedIn ? ` | ${safe(form.linkedIn)}` : ""}
-  </div>
+
+<div style="text-align:center;margin-bottom:20px;">
+
+<h1>
+
+${safe(form.name)}
+
+</h1>
+
+<h3>
+
+${safe(form.role)}
+
+</h3>
+
+<p>
+
+${personalInfo}
+
+</p>
+
 </div>
+
+
 
 <!-- SUMMARY -->
+
 ${cleanSummary ? `
-<div class="section">
-  <h2>SUMMARY</h2>
-  <hr/>
-  <p>${cleanSummary}</p>
-</div>` : ""}
+
+<h2>SUMMARY</h2>
+
+<hr/>
+
+<p>
+
+${safe(cleanSummary)}
+
+</p>
+
+` : ""}
+
+
 
 <!-- EXPERIENCE -->
+
 ${hasExperience ? `
-<div class="section">
+
 <h2>EXPERIENCE</h2>
+
 <hr/>
+
 ${form.experience
-  .filter((e) => e.role || e.company)
-  .map(
-    (e) => `
-<div style="margin-bottom:10px;">
-  <div class="flex-between">
-    <strong>${safe(e.role)}</strong>
-    <span>${safe(e.duration)} Year</span>
-  </div>
-  <div>Company: ${safe(e.company)}</div>
-  ${e.activities ? `<p>${safe(e.activities)}</p>` : ""}
-</div>`
-  )
-  .join("")}
-</div>` : ""}
+.filter(e => e.role || e.company)
+.map(e => `
 
-<!-- PROJECTS -->
-${hasProjects ? `
 <div class="section">
-<h2>PROJECTS</h2>
-<hr/>
-${form.projects
-  .filter((p) => p.name)
-  .map(
-    (p) => `
-<div style="margin-bottom:10px;">
-  <div class="flex-between">
-    <strong>${safe(p.name)}</strong>
-    ${p.link ? `<a href=${safe(p.link)} target="_blank">Live Demo</a>` : ""}
-  </div>
-  ${p.description ? `<p>${safe(p.description)}</p>` : ""}
-  ${
-    p.keyPoints?.filter((k) => k && k.trim()).length
-      ? `<ul>
-        ${p.keyPoints
-          .filter((k) => k && k.trim())
-          .map((k) => `<li>${safe(k)}</li>`)
-          .join("")}
-      </ul>`
-      : ""
-  }
-  ${p.technologies ? `<p><strong>Tech Used:</strong> ${safe(p.technologies)}</p>` : ""}
-</div>`
-  )
-  .join("")}
-</div>` : ""}
 
-<!-- EDUCATION -->
-<div class="section">
-<h2>EDUCATION</h2>
-<hr/>
-${form.education
-  ?.map(
-    (e) => `
-<div style="margin-bottom:10px;">
-  <div class="flex-between">
-    <strong>${safe(e.institute)}</strong>
-    <span>${safe(e.startYear)} - ${safe(e.endYear)}</span>
-  </div>
-  <div>
-    ${safe(e.eduType)}
-    ${e.department ? ` — ${safe(e.department)}` : ""}
-    ${e.score ? ` — ${safe(e.scoreType)}: ${safe(e.score)}` : ""}
-  </div>
-</div>`
-  )
-  .join("")}
+<div class="flex-between">
+
+<span>
+
+${safe(e.role)}
+
+</span>
+
+<span>
+
+${safe(e.duration)} Year
+
+</span>
+
 </div>
+
+<div>
+
+${safe(e.company)}
+
+</div>
+
+${e.activities ? `<p>${safe(e.activities)}</p>` : ""}
+
+</div>
+
+`).join("")}
+
+` : ""}
+
+
 
 <!-- SKILLS -->
+
 ${hasSkills ? `
-<div class="section">
+
 <h2>SKILLS</h2>
+
 <hr/>
-<div>
-${form.skills.filter(Boolean).join(", ")}
+
+<p>
+
+${form.skills
+.filter(Boolean)
+.join(", ")}
+
+</p>
+
+` : ""}
+
+
+
+<!-- EDUCATION -->
+
+${form.education?.length ? `
+
+<h2>EDUCATION</h2>
+
+<hr/>
+
+${form.education.map(e => `
+
+<div class="section">
+
+<div class="flex-between">
+
+<span>
+
+${safe(e.institute)}
+
+</span>
+
+<span>
+
+${safe(e.startYear)} - ${safe(e.endYear)}
+
+</span>
+
 </div>
-</div>` : ""}
+
+<div class="flex-between">
+
+<div>
+
+${safe(e.eduType)}
+
+${e.department ? ` ${safe(e.department)}` : ""}
+
+</div>
+
+<div>
+
+${e.score
+? `${safe(e.scoreType)}: ${safe(e.score)}`
+: ""}
+
+</div>
+
+</div>
+
+</div>
+
+`).join("")}
+
+` : ""}
+
+
 
 <!-- CERTIFICATES -->
+
 ${hasCertificates ? `
-<div class="section">
+
 <h2>CERTIFICATES</h2>
+
 <hr/>
+
 ${form.certificates
-  .filter((c) => c.title)
-  .map(
-    (c) => `
-<div style="margin-bottom:10px;">
-  <div class="flex-between">
-    <strong>${safe(c.title)}</strong>
-    <span>${safe(c.issuedOn)}</span>
-  </div>
-  <div>${safe(c.issuedBy)}</div>
-</div>`
-  )
-  .join("")}
-</div>` : ""}
+.filter(c => c.title)
+.map(c => `
 
-<!-- ADDITIONAL INFORMATION -->
-${hasAdditional ? `
 <div class="section">
-<h2>ADDITIONAL INFORMATION</h2>
-<hr/>
-${hasLanguages ? `
+
+<div class="flex-between">
+
+<span>
+
+${safe(c.title)}
+
+</span>
+
+<span>
+
+${safe(c.issuedOn)}
+
+</span>
+
+</div>
+
 <div>
+
+${safe(c.issuedBy)}
+
+</div>
+
+</div>
+
+`).join("")}
+
+` : ""}
+
+
+
+<!-- PROJECTS -->
+
+${hasProjects ? `
+
+<h2>PROJECTS</h2>
+
+<hr/>
+
+${form.projects
+.filter(p => p.name)
+.map(p => `
+
+<div class="section">
+
+<div class="flex-between">
+
+<span>
+
+${safe(p.name)}
+
+</span>
+
+${p.link
+? `<a href="${safe(p.link)}">Live Demo</a>`
+: ""}
+
+</div>
+
+${p.description
+? `<p>${safe(p.description)}</p>`
+: ""}
+
+${p.technologies
+? `<p><strong>Tech Used:</strong> ${safe(p.technologies)}</p>`
+: ""}
+
+</div>
+
+`).join("")}
+
+` : ""}
+
+
+
+<!-- ADDITIONAL -->
+
+${hasAdditional ? `
+
+<h2>ADDITIONAL INFORMATION</h2>
+
+<hr/>
+
+${hasLanguages ? `
+
+<div>
+
 <strong>Languages:</strong>
+
 ${form.languages
-  .filter((l) => l.language)
-  .map((l) => {
-    const levels = [];
-    if (l.read) levels.push("Read");
-    if (l.write) levels.push("Write");
-    if (l.speak) levels.push("Speak");
-    return `${safe(l.language)} (${levels.join(", ")})`;
-  })
-  .join(", ")}
-</div>` : ""}
+.filter(l => l.language)
+.map(l => {
 
-${form.nationality ? `<div><strong>Nationality:</strong> ${safe(form.nationality)}</div>` : ""}
+const levels=[];
 
-${form.availabilityType ? `<div><strong>Availability:</strong> ${safe(form.availabilityType)}</div>` : ""}
+if(l.read) levels.push("Read");
+if(l.write) levels.push("Write");
+if(l.speak) levels.push("Speak");
 
-</div>` : ""}
+return `${safe(l.language)} (${levels.join(", ")})`;
+
+})
+.join(", ")}
+
+</div>
+
+` : ""}
+
+
+${form.nationality
+? `<div><strong>Nationality:</strong> ${safe(form.nationality)}</div>`
+: ""}
+
+${form.availabilityType
+? `<div><strong>Availability:</strong> ${safe(form.availabilityType)}</div>`
+: ""}
+
+` : ""}
+
+
 
 </body>
+
 </html>
-${console.log("PDF Exported")}
+
 `;
 
 }
