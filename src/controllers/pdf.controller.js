@@ -216,6 +216,7 @@ style="
 font-weight:600;
 color:#1d59b5;
 font-size:16px;
+margin-bottom: 5px;
 "
 >
 
@@ -249,6 +250,7 @@ style="
 font-weight:600;
 color:#1d59b5;
 font-size:16px;
+margin-bottom: 5px;
 "
 >
 
@@ -320,6 +322,7 @@ style="
 font-weight:600;
 color:#1d59b5;
 font-size:16px;
+margin-bottom: 5px;
 "
 >
 
@@ -355,6 +358,7 @@ style="
 font-weight:600;
 color:#1d59b5;
 font-size:16px;
+margin-bottom: 5px;
 "
 >
 
@@ -440,6 +444,7 @@ style="
 font-weight:600;
 color:#1d59b5;
 font-size:16px;
+margin-bottom: 5px;
 "
 >
 
@@ -509,6 +514,7 @@ style="
 font-weight:600;
 color:#1d59b5;
 font-size:16px;
+margin-bottom: 5px;
 "
 >
 
@@ -578,6 +584,7 @@ style="
 font-weight:600;
 color:#1d59b5;
 font-size:16px;
+margin-bottom: 5px;
 "
 >
 
