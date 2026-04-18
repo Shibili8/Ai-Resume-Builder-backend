@@ -152,12 +152,15 @@ return `
 
 <body
 style="
-font-family:Arial;
-padding:40px;
-line-height:1.5;
-"
->
-
+      width: "794px",
+      min-height: "1123px",
+      margin: "20px auto",
+      padding: "40px",
+      background: "white",
+      box-shadow:
+        "0 0 10px rgba(0,0,0,0.15)",
+      font-family: "Arial",
+    "
 
 <!-- HEADER -->
 
@@ -181,17 +184,7 @@ ${safe(form.name)}
 
 </h1>
 
-<h3
-style="
-font-size:14px;
-margin:4px 0;
-font-weight:600;
-"
->
-
-${safe(form.role)}
-
-</h3>
+<h3>${safe(form.role)}</h3>
 
 <p
 style="
@@ -281,24 +274,14 @@ font-weight:600;
 "
 >
 
-<span>
+<span>${safe(e.role)}</span>
 
-${safe(e.role)}
-
-</span>
-
-<span>
-
-${safe(e.duration)} Year
-
-</span>
+<span>${safe(e.duration)} Year </span>
 
 </div>
 
 <div>
-
 ${safe(e.company)}
-
 </div>
 
 ${e.activities ? `<p>${safe(e.activities)}</p>` : ""}
