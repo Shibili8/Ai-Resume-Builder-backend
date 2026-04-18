@@ -16,7 +16,7 @@ export const generateSummary = async (req, res) => {
   } catch (error) {
     console.error("❌ AI Generation Error:", error.message);
     res.status(500).json({
-      error: "AI generation failed",
+      error: "AI generation failed, retry it",
       details: error.message,
     });
   }
