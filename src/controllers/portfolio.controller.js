@@ -190,9 +190,17 @@ export async function updatePortfolio(req, res) {
 
     const { id } = req.params;
 
-    let userId;
+    // ✅ Validate ID first
+    if (!ObjectId.isValid(id)) {
 
-    // ✅ Handle ObjectId correctly
+      return res.status(400).json({
+        error: "Invalid Resume ID"
+      });
+
+    }
+
+    // ✅ Fix userId type
+    let userId;
 
     if (ObjectId.isValid(req.user.id)) {
 
@@ -234,12 +242,15 @@ export async function updatePortfolio(req, res) {
 
       );
 
-    // ✅ Check update actually happened
+    console.log(
+      "Update Result:",
+      result
+    );
 
     if (result.matchedCount === 0) {
 
       return res.status(404).json({
-        error: "Resume not found or unauthorized"
+        error: "Resume not found"
       });
 
     }
@@ -256,7 +267,7 @@ export async function updatePortfolio(req, res) {
     );
 
     res.status(500).json({
-      error: "Update failed"
+      error: err.message
     });
 
   }
