@@ -190,7 +190,6 @@ export async function updatePortfolio(req, res) {
 
     const { id } = req.params;
 
-    // ✅ Validate ID first
     if (!ObjectId.isValid(id)) {
 
       return res.status(400).json({
@@ -200,6 +199,7 @@ export async function updatePortfolio(req, res) {
     }
 
     // ✅ Fix userId type
+
     let userId;
 
     if (ObjectId.isValid(req.user.id)) {
@@ -214,13 +214,21 @@ export async function updatePortfolio(req, res) {
 
     }
 
+    // ✅ Remove _id before updating
+
+    const {
+      _id,
+      userId: bodyUserId,
+      ...rest
+    } = req.body;
+
     const updatedData = {
 
-      ...req.body,
+      ...rest,
 
       education:
         normalizeEducationArray(
-          req.body.education
+          rest.education
         ),
 
       updatedAt:
